@@ -1,5 +1,6 @@
 venv
 .sass-cache
+__py_cache__
 node_modules
 site
 *.pyc
