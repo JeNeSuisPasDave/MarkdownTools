@@ -1,3 +1,7 @@
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
+#
 import os
 import os.path
 import sys
@@ -108,7 +112,7 @@ class CLI:
         #
         self.parser = argparse.ArgumentParser(
             description=("Concatenate and include multiple markdown"
-            "files into a single file"), prog='markdownMerge')
+            "files into a single file"), prog='mdmerge')
         self.parser.add_argument(
             '--version', dest='showVersion', action='store_true',
             default=False, help="show the software version")
@@ -231,10 +235,44 @@ class CLI:
             else:
                 print(line, file=self.__outfile)
 
+    def _ShowVersion(self):
+        """Show the version only.
+
+        """
+
+        import mdMerge
+
+        print("mdmerge version {0}".format(mdMerge.__version__),
+            file=self.__stdout)
+
+    def _StdinIsTTY(self):
+        """Detect whether the stdin is mapped to a terminal console.
+
+        I found this technique in the answer by thg435 here:
+        http://stackoverflow.com/questions/13442574/how-do-i-determine-if-sys-stdin-is-redirected-from-a-file-vs-piped-from-another
+
+        """
+
+        import os, stat
+
+        mode = os.fstat(0).st_mode
+        if ((not stat.S_ISFIFO(mode)) # piped
+        and (not stat.S_ISREG(mode))): # redirected
+            return True
+        else: # not piped or redirected, so assume terminal input
+            return False
+
     def Execute(self):
         """Merge the files.
 
         """
+
+        if self.__abandonCLI:
+            return
+
+        if self.args.showVersion:
+            self._ShowVersion()
+            return
 
         if self.__useStdout:
             self.__outfile = self.__stdout
