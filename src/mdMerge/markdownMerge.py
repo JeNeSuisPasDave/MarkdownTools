@@ -117,8 +117,19 @@ class CLI:
             '--version', dest='showVersion', action='store_true',
             default=False, help="show the software version")
         self.parser.add_argument(
+            "--export-target", dest='exportTarget', action='store',
+            choices=['html','latex','lyx','opml','rtf','odf'],
+            default="none", help="Guide include file wildcard substitution")
+        self.parser.add_argument(
+            "--leanpub", dest='leanPub', action='store_true',
+            default=False,
+            help="Any file called 'book.txt' will be a LeanPub index")
+        self.parser.add_argument(
             '-o', '--outfile', dest='outFile', action='store',
             help="Specify the path to the output file")
+        self.parser.add_argument(
+            '--', dest='useStdin', action='store_true',
+            default=False, help="Expect input to come only from stdin")
         self.parser.add_argument(
             dest='filepaths', metavar='filepath', nargs='*',
             help="A file to concatenate or '--' for stdin")
@@ -159,7 +170,7 @@ class CLI:
 
         Raises:
             IOError: The file is not a regular file or it doesn't exist.
-            
+
         """
 
         import stat
@@ -171,7 +182,7 @@ class CLI:
                 fullpath = os.path.abspath(filepath)
                 return fullpath
             else:
-                fmts = "'{0}' is not a regular file and cannot be overwritten." 
+                fmts = "'{0}' is not a regular file and cannot be overwritten."
                 raise IOError(fmts.format(filepath))
         except FileNotFoundError:
             pass
@@ -220,7 +231,7 @@ class CLI:
                 if CLI.__STDIN_FILENAME == fp:
                     ffp = CLI.__STDIN_FILENAME
                 else:
-                    ffp = self._ValidateInputFilepath(fp) 
+                    ffp = self._ValidateInputFilepath(fp)
                 self.__inputFilepaths.append(ffp)
 
     def _ScanFile(self, ifile):
