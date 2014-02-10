@@ -14,6 +14,8 @@ import re
 import sys
 from mdMerge.markdownMerge import CLI
 
+import pprint
+
 class CoreCLITests(unittest.TestCase):
 
     class RedirectStdStreams:
@@ -53,7 +55,21 @@ class CoreCLITests(unittest.TestCase):
     def __init__(self, *args):
         self.devnull = open(os.devnull, "w")
         super().__init__(*args)
+        self.__root = os.path.dirname(__file__)
+        self.__dataDir = os.path.join(self.__root, "data")
 
+    def _AreFilesIdentical(self, filePathA, filePathB):
+
+        import difflib
+
+        fileTextA = open(filePathA).read().splitlines(True)
+        fileTextB = open(filePathB).read().splitlines(True)
+        difference = list(difflib.context_diff(fileTextA, fileTextB, n=1))
+        diffLineCount = len(difference)
+        if 0 == diffLineCount:
+            return True;
+        pprint.pprint(difference)
+        return False;
 
     def _SideEffectExpandUser(self, path):
         if not path.startswith("~"):
@@ -127,6 +143,32 @@ class CoreCLITests(unittest.TestCase):
     # -------------------------------------------------------------------------+
     # test for CLI.Execute()
     # -------------------------------------------------------------------------+
+
+    # merge tests
+    #
+
+    @unittest.mock.patch('os.path.expanduser')
+    def testNoIncludes(self, mock_expanduser):
+        """Test CLI.Execute()
+
+        Make certain the file is not modified when there are no includes.
+
+        """
+
+
+        mock_expanduser.side_effect = lambda x: self._SideEffectExpandUser(x)
+        rwMock = unittest.mock.MagicMock()
+        inputFilePath = os.path.join(self.__dataDir, "no-include.mmd")
+        outputFilePath = os.path.join(self.tempDirPath.name, "out.mmd")
+
+        cut = CLI(stdin=rwMock, stdout=rwMock)
+        args = ("-o", outputFilePath, inputFilePath)
+        cut.ParseCommandArgs(args)
+        rwMock.reset_mock()
+        cut.Execute()
+        self.assertTrue(self._AreFilesIdentical(
+            inputFilePath, outputFilePath))
+
 
     # miscellaneous tests
     #

@@ -139,7 +139,7 @@ class CLI:
 
         try:
             st = os.stat(filepath)
-            mode = st.mode
+            mode = st.st_mode
             if stat.S_ISREG(mode):
                 fullpath = os.path.abspath(filepath)
                 return fullpath
@@ -166,7 +166,7 @@ class CLI:
 
         try:
             st = os.stat(filepath)
-            mode = st.mode
+            mode = st.st_mode
             if stat.S_ISREG(mode):
                 fullpath = os.path.abspath(filepath)
                 return fullpath
@@ -180,7 +180,7 @@ class CLI:
         dirpath = os.path.dirname(fullpath)
         try:
             st = os.stat(dirpath)
-            mode = st.mode
+            mode = st.st_mode
             if stat.S_ISDIR(mode):
                 return fullpath
             else:
@@ -209,7 +209,8 @@ class CLI:
             return
         if self.args.outFile != None:
             self.__useStdout = False
-            self.__outFilepath = self._Validate(self.args.outFile)
+            self.__outFilepath = self._ValidateOutputFilepath(
+                self.args.outFile)
         if 0 == len(self.args.filepaths):
             self.__useStdin = True
             self.__inputFilepaths.append(CLI.__STDIN_FILENAME)
@@ -230,10 +231,8 @@ class CLI:
         """
 
         for line in ifile:
-            if self.__useStdout:
-                print(line, file=self.__outfile)
-            else:
-                print(line, file=self.__outfile)
+            print(line, file=self.__outfile, end=''`)
+            print("[DTH] {0}".format(line), end='')
 
     def _ShowVersion(self):
         """Show the version only.
@@ -275,8 +274,10 @@ class CLI:
             return
 
         if self.__useStdout:
+            print("[DTH] *** __outFilepath: STDOUT ***")
             self.__outfile = self.__stdout
         else:
+            print("[DTH] *** __outFilepath: '{0}' ***".format(self.__outFilepath))
             self.__outfile = open(self.__outFilepath, 'w')
 
         for ipath in self.__inputFilepaths:
@@ -286,7 +287,10 @@ class CLI:
             else:
                 ifile = open(ipath, 'r')
                 self._ScanFile(ifile)
-                close(ifile)
+                ifile.close()
+                self.__outfile.close()
+                print("[DTH] Here is the output file")
+                print(open(self.__outFilepath).read())
 
     def ParseCommandArgs(self, args):
         """Parse the command line arguments.

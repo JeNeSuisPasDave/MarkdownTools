@@ -1,0 +1,142 @@
+Title: Specifications
+
+# Specifications
+
+## filepaths
+
+Unless otherwise specified, all file path are specified as:
+
+* Absolute (starts with `/`)
+* Home (starts with `~/`) in which the tilde means the users home directory
+* Relative (starts with something other than `/` or `~/`) to the file that includes them.
+
+## Interpretting index files
+
+### LeanPub index files
+
+If the first line of the file is `frontmatter:` then the file is recognized as a LeanPub index file. The processing rules for __LeanPub index files__ are:
+
+1. The remaining lines are treated as filepaths of files to be merged together.
+2. Blank lines are ignored
+3. Lines beginning with a # are ignored
+4. Lines consisting of `frontmatter:`, `mainmatter:`, and `backmatter:` are ignored.
+5. Index files can be nested. Nested files can be just markdown, markdown with include declarations, and index files (both LeanPub and mmd_merge style).
+6. Lines that specify invalid file syntax or specify files that don't exist will be ignored, except that a warning message will be written to stderr.
+7. Leading whitespace is ignored
+
+From the command line, the flag `--leanpub` will signal that any file called `book.txt` will be treated as a LeanPub index file.
+
+### mmd_merge index files
+
+If the first line of the file is `#merge` then the file is recognized a mmd_merge index file. The processing rules for __mmd_merge index files__ are:
+
+1. The remaining lines are treated as filepaths of files to be merged together.
+2. Blank lines are ignored
+3. Lines beginning with a # are ignored
+4. Lines consisting of `frontmatter:`, `mainmatter:`, and `backmatter:` are ignored.
+5. Index files can be nested. Nested files can be just markdown, markdown with include declarations, and index files (both LeanPub and mmd_merge style).
+6. Lines that specify invalid file syntax or specify files that don't exist will be ignored, except that a warning message will be written to stderr.
+7. Leading whitespace is significant in that each tab or every 4 spaces is treated as an increase in header level (so a single tab indent would change convert an H1 to an H2; a double tab indent would convert an H1 to an H3).
+
+## Interpreting include declarations
+
+### MultiMarkdown transclusion syntax
+
+The transclusion syntax was introduced in MultiMarkdown 4.5. An include declaration is matched as a __MultiMarkdown file transclusion__ if it has the following form:
+
+1. A blank line, followed by 
+2. A line containing only `{{filepath}}`, followed by 
+3. Another blank line.
+
+Files included in this manner will themselves be examined for further include declarations or as index files.
+
+Another format matching MultiMarkdown file transclusion is:
+
+1. A blank line, followed by 
+2. A code fence start (e.g. `~~~` or `~~~python` or similar, followed by
+3. A line containing only `{{filepath}}`, followed by 
+4. A code fence termination (e.g. `~~~`), followed by
+5. Another blank line.
+
+Files matched in this manner will not be examined for further include declarations or index file specification. They will be included as is, including trailing line breaks.
+
+>__ISSUE:__ perhaps I should strip trailing line breaks!
+
+In any case the filename may be specified with a wildcard file extension (e.g., `name.*`). In this case MultiMarkdown will substitute an extension by the export format. This utility will substitute the wildcard in one of these ways:
+
+* If the command line flag `--export-target html` is specified, replace `.*` with `.html`
+* If the command line flag `--export-target latex` is specified, replace `.*` with `.tex`
+* If the command line flag `--export-target lyx` is specified, replace `.*` with `.lyx`
+* If the command line flag `--export-target opml` is specified, replace `.*` with `.opml`
+* If the command line flag `--export-target rtf` is specified, replace `.*` with `.rtf`
+* If the command line flag `--export-target odf` is specified, replace `.*` with `.odf`
+* If the command line flag `--export-target` is unspecified, replace `.*` with the same extension as the current file (the file containing the include declaration)
+
+### Marked inclusion syntax
+
+A declarations is matched as a __Marked inclusion__ if it has the form:
+
+1. A blank line, followed by 
+2. A line containing only `<<[filepath]`, followed by 
+3. Another blank line.
+
+The filepath can be absolute, relative to the root file, and can use the `~` syntax for the user's home directory.
+
+### LeanPub code inclusion syntax
+
+A declaration is matched as __LeanPub code inclusion__ if it has the form:
+
+1. A blank line, followed by 
+2. A line containing only `<<(filepath)`, followed by 
+3. Another blank line.
+
+An declaration is also matched as LeanPub code inclusion if it has the form:
+
+1. A blank line, followed by 
+2. A line containing only `<<[code title](filepath)`, followed by 
+3. Another blank line.
+
+In that case, however, the text in `[code title]` is not used as a caption (which is what LeanPub would do); it is ignored.
+
+Note: Unlike Marked inclusion, wildcard file extension substitution is not performed with LeanPub code inclusion.
+
+## Command Line Syntax
+
+The command line looks like this:
+
+~~~nohighlight
+mdmerge [options] [-o outputfile] inputfiles
+mdmerge [options] [-o outputfile] --
+~~~
+
+### Options
+
+`options`
+:   One or more of `--export-target`, `--leanpub`, `--version`, `--help`, `-h`, `-?`.
+
+`--export-target [html|latex|lyx|opml|rtf|odf]`
+:   Indicates the ultimate output target of the markdown processor, but primarily impacts wildcard substitution in Marked inclusion.
+
+`--leanpub`
+:   Indicates that any input file named `book.txt` should be treated as a LeanPub index file.
+
+`--version`
+:   Gives the version information about the utility.
+
+`-o outputfile`
+:   The filepath in which to store the merged text. If not specified, then stdout is used.
+
+`inputfiles`
+:   A list of space separated input files that can be merged together. If multiple files are given, they are treated as if they were specified in a LeanPub index file.
+
+`--`
+:   The input comes from stdin.
+
+`--help`
+:   Help information
+
+`-h`
+:   Help information
+
+`-?`
+:   Help information
