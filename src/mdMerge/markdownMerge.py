@@ -5,6 +5,7 @@
 import os
 import os.path
 import sys
+import argparse
 
 """TODO:
 
@@ -32,9 +33,9 @@ class CLI:
 
         def IsAncestor(self, filePath):
             if self.__filePath == filePath:
-                return true;
+                return true
             if self.__parent.__filePath == None:
-                return false;
+                return false
             return self.__parent.IsAncestor(filePath)
 
         def AddChild(self, filePath):
@@ -70,7 +71,7 @@ class CLI:
 
     # class attributes
     #
-    __STDIN_FILENAME = '--'
+    __STDIN_FILENAME = '-'
 
     def __init__(self, stdin=None, stdout=None, stderr=None):
         """Constructor
@@ -78,7 +79,6 @@ class CLI:
         """
 
         import os.path
-        import argparse
 
         self.__stdinRedirected = False
         if stdin is not None:
@@ -107,6 +107,8 @@ class CLI:
         self.__outFilepath = None
         self.__outfile = None
         self.__inputFilepaths = []
+        self.__bookTxtIsSpecial = False
+        self.__wildcardExtensionIs = None
 
         # main command
         #
@@ -119,7 +121,7 @@ class CLI:
         self.parser.add_argument(
             "--export-target", dest='exportTarget', action='store',
             choices=['html','latex','lyx','opml','rtf','odf'],
-            default="none", help="Guide include file wildcard substitution")
+            help="Guide include file wildcard substitution")
         self.parser.add_argument(
             "--leanpub", dest='leanPub', action='store_true',
             default=False,
@@ -128,11 +130,26 @@ class CLI:
             '-o', '--outfile', dest='outFile', action='store',
             help="Specify the path to the output file")
         self.parser.add_argument(
-            '--', dest='useStdin', action='store_true',
-            default=False, help="Expect input to come only from stdin")
-        self.parser.add_argument(
-            dest='filepaths', metavar='filepath', nargs='*',
-            help="A file to concatenate or '--' for stdin")
+            dest='inFiles', metavar='inFile', nargs='*',
+            help="One or more files to merge, or just '-' for stdin")
+
+    def _ValidateExportTarget(self, exportTarget):
+        if exportTarget is not None:
+            if 'html' ==  exportTarget:
+                self.__wildcardExtensionIs = ".html"
+            elif 'latex' ==  exportTarget:
+                self.__wildcardExtensionIs = ".tex"
+            elif 'lyx' ==  exportTarget:
+                self.__wildcardExtensionIs = ".lyx"
+            elif 'opml' ==  exportTarget:
+                self.__wildcardExtensionIs = ".opml"
+            elif 'rtf' ==  exportTarget:
+                self.__wildcardExtensionIs = ".rtf"
+            elif 'odf' ==  exportTarget:
+                self.__wildcardExtensionIs = ".odf"
+            else:
+                raise ValueError(
+                    "Unknown export target: {0}".format(exportTarget))
 
     def _ValidateInputFilepath(self, filepath):
         """Verify that if the file exists it is a regular file, or if the file
@@ -142,23 +159,26 @@ class CLI:
             The full absolute path of the validated file.
 
         Raises:
-            IOError: The file is not a regular file or it doesn't exist.
+            parser.error: The file is not a regular file or it doesn't exist.
 
         """
 
         import stat
 
         try:
+            if CLI.__STDIN_FILENAME == filepath:
+                self.parser.error(
+                    "You cannot specify both stdin ('-') and input files.")
             st = os.stat(filepath)
             mode = st.st_mode
             if stat.S_ISREG(mode):
                 fullpath = os.path.abspath(filepath)
                 return fullpath
             else:
-                raise IOError(
+                self.parser.error(
                     "'{0}' is not a regular file.".format(filepath))
         except FileNotFoundError:
-            raise IOError(
+            self.parser.error(
                 "'{0}' does not exist.".format(filepath))
 
     def _ValidateOutputFilepath(self, filepath):
@@ -169,7 +189,8 @@ class CLI:
             The full absolute path of the validated file.
 
         Raises:
-            IOError: The file is not a regular file or it doesn't exist.
+            self.parser.error: The file is not a regular file
+                or it doesn't exist.
 
         """
 
@@ -183,7 +204,7 @@ class CLI:
                 return fullpath
             else:
                 fmts = "'{0}' is not a regular file and cannot be overwritten."
-                raise IOError(fmts.format(filepath))
+                self.parser.error(fmts.format(filepath))
         except FileNotFoundError:
             pass
 
@@ -196,11 +217,11 @@ class CLI:
                 return fullpath
             else:
                 fmts = "'{0}' is not a directory; invalid output file path"
-                raise IOError(fmts.format(dirpath))
+                self.parser.error(fmts.format(dirpath))
         except FileNotFoundError:
             fmts = ("The directory '{0}' does not exist;"
                 " invalid output file path")
-            raise IOError(fmts.format(dirpath))
+            self.parser.error(fmts.format(dirpath))
 
     def _ValidateArgs(self):
         """Validate the command line arguments and set fields based on those
@@ -222,17 +243,23 @@ class CLI:
             self.__useStdout = False
             self.__outFilepath = self._ValidateOutputFilepath(
                 self.args.outFile)
-        if 0 == len(self.args.filepaths):
-            self.__useStdin = True
-            self.__inputFilepaths.append(CLI.__STDIN_FILENAME)
-        else:
-            for fp in self.args.filepaths:
-                ffp = None
-                if CLI.__STDIN_FILENAME == fp:
-                    ffp = CLI.__STDIN_FILENAME
-                else:
-                    ffp = self._ValidateInputFilepath(fp)
-                self.__inputFilepaths.append(ffp)
+        if 0 == len(self.args.inFiles):
+            self.parser.error(
+                "You must specify at least one input. " +
+                "Either '-' for stdin, or a list of files separated " +
+                "by whitespace.")
+        for fp in self.args.inFiles:
+            ffp = None
+            if (1 == len(self.args.inFiles)
+            and CLI.__STDIN_FILENAME == fp):
+                ffp = CLI.__STDIN_FILENAME
+                self.__useStdin = True
+            else:
+                ffp = self._ValidateInputFilepath(fp)
+            self.__inputFilepaths.append(ffp)
+        self._ValidateExportTarget(self.args.exportTarget)
+        if self.args.leanPub:
+            self.__bookTxtIsSpecial = True
 
     def _ScanFile(self, ifile):
         """Store input lines into output file. If the input line is an
@@ -242,7 +269,7 @@ class CLI:
         """
 
         for line in ifile:
-            print(line, file=self.__outfile, end=''`)
+            print(line, file=self.__outfile, end='')
             print("[DTH] {0}".format(line), end='')
 
     def _ShowVersion(self):
