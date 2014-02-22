@@ -140,6 +140,23 @@ class CoreCLITests(unittest.TestCase):
                 cut = CLI()
                 cut.ParseCommandArgs(args)
 
+    def testParseOneInputFile(self):
+        """Test CLI.ParseCommandArgs().
+
+        Happy path. A single input file with no optional arguments.
+
+        """
+
+        cut = CLI()
+        args = ("data/a.mmd")
+        cut.ParseCommandArgs(args)
+        self.assertIsNone(cut.args.exportTarget)
+        self.assertEqual(1, len(cut.args.inFiles))
+        self.assertEqual("wat.mmd", cut.args.inFiles[0])
+        self.assertIsTrue(not cut.args.leanPub)
+        self.assertIsNone(cut.args.outFile)
+        self.assertTrue(not cut.args.showVersion)
+
     # -------------------------------------------------------------------------+
     # test for CLI.Execute()
     # -------------------------------------------------------------------------+
@@ -148,7 +165,7 @@ class CoreCLITests(unittest.TestCase):
     #
 
     @unittest.mock.patch('os.path.expanduser')
-    def testNoIncludes(self, mock_expanduser):
+    def xtestNoIncludes(self, mock_expanduser):
         """Test CLI.Execute()
 
         Make certain the file is not modified when there are no includes.
@@ -174,7 +191,7 @@ class CoreCLITests(unittest.TestCase):
     #
 
     @unittest.mock.patch('os.path.expanduser')
-    def testShowVersion(self, mock_expanduser):
+    def xtestShowVersion(self, mock_expanduser):
         """Test CLI.Execute()
 
         Make certain the --version option produces correct output.

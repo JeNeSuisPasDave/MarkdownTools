@@ -165,6 +165,7 @@ class CLI:
 
         import stat
 
+        fnf = False
         try:
             if CLI.__STDIN_FILENAME == filepath:
                 self.parser.error(
@@ -178,6 +179,9 @@ class CLI:
                 self.parser.error(
                     "'{0}' is not a regular file.".format(filepath))
         except FileNotFoundError:
+            fnf = True
+
+        if fnf:
             self.parser.error(
                 "'{0}' does not exist.".format(filepath))
 
