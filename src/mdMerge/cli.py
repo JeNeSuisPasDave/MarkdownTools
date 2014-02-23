@@ -18,34 +18,7 @@ import argparse
 """
 
 class CLI:
-
-
-    class Node:
-        """A tree node used to build a tree of filepaths that contain
-        no cycles.
-
-        """
-
-        def __init__(self, filePath=None, parentNode=None):
-            self.__filePath = filePath
-            self.__parent = parentNode
-            self.__children = []
-
-        def IsAncestor(self, filePath):
-            if self.__filePath == filePath:
-                return true
-            if self.__parent.__filePath == None:
-                return false
-            return self.__parent.IsAncestor(filePath)
-
-        def AddChild(self, filePath):
-            if self.IsAncestor(filePath):
-                fmts = ("Circular reference."
-                    " File '{0}' and an ancestor of itself.")
-                raise AssertionError(fmts.format(filePath))
-            node = Node(filePath, self)
-            self.__children.append(node)
-            return node
+    from .node import Node
 
     class RedirectStdStreams:
         """A context manager that can temporarily redirect the standard
@@ -132,6 +105,59 @@ class CLI:
         self.parser.add_argument(
             dest='inFiles', metavar='inFile', nargs='*', type=str,
             help="One or more files to merge, or just '-' for stdin")
+
+    def _ValidateArgs(self):
+        """Validate the command line arguments and set fields based on those
+        arguments.
+
+        Raises:
+            IOError: there was a problem validating the files specified on
+            the command line.
+
+        """
+
+        # if '--version' specified, ignore remainder of command line
+        #
+        if self.args.showVersion:
+            if 'subcmd' in dir(self.args):
+                self.args.subcmd = None
+            return
+        if self.args.outFile != None:
+            self.__useStdout = False
+            self.__outFilepath = self._ValidateOutputFilepath(
+                self.args.outFile)
+        if 0 == len(self.args.inFiles):
+            self.parser.error(
+                "You must specify at least one input. " +
+                "Either '-' for stdin, or a list of files separated " +
+                "by whitespace.")
+        # if there was just one input file provided, then argparse
+        # may have interpreted that as a list of characters rather than
+        # as a string. So we need to convert it back to a list containing
+        # a single string element.
+        #
+        if 0 != len(self.args.inFiles):
+            isArrayOfChars = True
+            for c in self.args.inFiles:
+                if 1 != len(c):
+                    isArrayOfChars = False
+                    break
+            if (isArrayOfChars):
+                self.args.inFiles = [''.join(self.args.inFiles)]
+        # Now validate the input file paths (or the '-' stdin designator)
+        #
+        for fp in self.args.inFiles:
+            ffp = None
+            if (1 == len(self.args.inFiles)
+            and CLI.__STDIN_FILENAME == fp):
+                ffp = CLI.__STDIN_FILENAME
+                self.__useStdin = True
+            else:
+                ffp = self._ValidateInputFilepath(fp)
+            self.__inputFilepaths.append(ffp)
+        self._ValidateExportTarget(self.args.exportTarget)
+        if self.args.leanPub:
+            self.__bookTxtIsSpecial = True
 
     def _ValidateExportTarget(self, exportTarget):
         if exportTarget is not None:
@@ -226,59 +252,6 @@ class CLI:
             fmts = ("The directory '{0}' does not exist;"
                 " invalid output file path")
             self.parser.error(fmts.format(dirpath))
-
-    def _ValidateArgs(self):
-        """Validate the command line arguments and set fields based on those
-        arguments.
-
-        Raises:
-            IOError: there was a problem validating the files specified on
-            the command line.
-
-        """
-
-        # if '--version' specified, ignore remainder of command line
-        #
-        if self.args.showVersion:
-            if 'subcmd' in dir(self.args):
-                self.args.subcmd = None
-            return
-        if self.args.outFile != None:
-            self.__useStdout = False
-            self.__outFilepath = self._ValidateOutputFilepath(
-                self.args.outFile)
-        if 0 == len(self.args.inFiles):
-            self.parser.error(
-                "You must specify at least one input. " +
-                "Either '-' for stdin, or a list of files separated " +
-                "by whitespace.")
-        # if there was just one input file provided, then argparse
-        # may have interpreted that as a list of characters rather than
-        # as a string. So we need to convert it back to a list containing
-        # a single string element.
-        #
-        if 0 != len(self.args.inFiles):
-            isArrayOfChars = True
-            for c in self.args.inFiles:
-                if 1 != len(c):
-                    isArrayOfChars = False
-                    break
-            if (isArrayOfChars):
-                self.args.inFiles = [''.join(self.args.inFiles)]
-        # Now validate the input file paths (or the '-' stdin designator)
-        #
-        for fp in self.args.inFiles:
-            ffp = None
-            if (1 == len(self.args.inFiles)
-            and CLI.__STDIN_FILENAME == fp):
-                ffp = CLI.__STDIN_FILENAME
-                self.__useStdin = True
-            else:
-                ffp = self._ValidateInputFilepath(fp)
-            self.__inputFilepaths.append(ffp)
-        self._ValidateExportTarget(self.args.exportTarget)
-        if self.args.leanPub:
-            self.__bookTxtIsSpecial = True
 
     def _ScanFile(self, ifile):
         """Store input lines into output file. If the input line is an
