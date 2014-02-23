@@ -130,7 +130,7 @@ class CLI:
             '-o', '--outfile', dest='outFile', action='store',
             help="Specify the path to the output file")
         self.parser.add_argument(
-            dest='inFiles', metavar='inFile', nargs='*',
+            dest='inFiles', metavar='inFile', nargs='*', type=str,
             help="One or more files to merge, or just '-' for stdin")
 
     def _ValidateExportTarget(self, exportTarget):
@@ -252,6 +252,21 @@ class CLI:
                 "You must specify at least one input. " +
                 "Either '-' for stdin, or a list of files separated " +
                 "by whitespace.")
+        # if there was just one input file provided, then argparse
+        # may have interpreted that as a list of characters rather than
+        # as a string. So we need to convert it back to a list containing
+        # a single string element.
+        #
+        if 0 != len(self.args.inFiles):
+            isArrayOfChars = True
+            for c in self.args.inFiles:
+                if 1 != len(c):
+                    isArrayOfChars = False
+                    break
+            if (isArrayOfChars):
+                self.args.inFiles = [''.join(self.args.inFiles)]
+        # Now validate the input file paths (or the '-' stdin designator)
+        #
         for fp in self.args.inFiles:
             ffp = None
             if (1 == len(self.args.inFiles)

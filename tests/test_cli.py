@@ -10,9 +10,10 @@ Unit tests for the MarkdownMerge module.
 import unittest
 import unittest.mock
 import os
+import os.path
 import re
 import sys
-from mdMerge.markdownMerge import CLI
+from mdMerge.cli import CLI
 
 import pprint
 
@@ -148,14 +149,296 @@ class CoreCLITests(unittest.TestCase):
         """
 
         cut = CLI()
-        args = ("data/a.mmd")
+        args = ("tests/data/a.mmd")
         cut.ParseCommandArgs(args)
         self.assertIsNone(cut.args.exportTarget)
         self.assertEqual(1, len(cut.args.inFiles))
-        self.assertEqual("wat.mmd", cut.args.inFiles[0])
-        self.assertIsTrue(not cut.args.leanPub)
+        self.assertEqual("tests/data/a.mmd", cut.args.inFiles[0])
+        self.assertFalse(cut.args.leanPub)
         self.assertIsNone(cut.args.outFile)
-        self.assertTrue(not cut.args.showVersion)
+        self.assertFalse(cut.args.showVersion)
+
+        self.assertFalse(cut._CLI__abandonCLI)
+        self.assertFalse(cut._CLI__useStdin)
+        self.assertTrue(cut._CLI__useStdout)
+        self.assertIsNone(cut._CLI__outFilepath)
+        self.assertEqual(1, len(cut._CLI__inputFilepaths))
+        self.assertFalse(cut._CLI__bookTxtIsSpecial)
+        self.assertIsNone(cut._CLI__wildcardExtensionIs)
+
+    def testParseStdin(self):
+        """Test CLI.ParseCommandArgs().
+
+        Happy path. Using stdin instead of input files.
+
+        """
+
+        cut = CLI()
+        args = ("-")
+        cut.ParseCommandArgs(args)
+        self.assertIsNone(cut.args.exportTarget)
+        self.assertEqual(1, len(cut.args.inFiles))
+        self.assertEqual("-", cut.args.inFiles[0])
+        self.assertFalse(cut.args.leanPub)
+        self.assertIsNone(cut.args.outFile)
+        self.assertFalse(cut.args.showVersion)
+
+        self.assertFalse(cut._CLI__abandonCLI)
+        self.assertTrue(cut._CLI__useStdin)
+        self.assertTrue(cut._CLI__useStdout)
+        self.assertIsNone(cut._CLI__outFilepath)
+        self.assertEqual(1, len(cut._CLI__inputFilepaths))
+        self.assertFalse(cut._CLI__bookTxtIsSpecial)
+        self.assertIsNone(cut._CLI__wildcardExtensionIs)
+
+    def testParseStdinPlusOthers(self):
+        """Test CLI.ParseCommandArgs().
+
+        Using stdin as well as a list of input files. Expecting
+        an error.
+
+        """
+
+        args = ("-", "tests/data/a.mmd")
+        with self.assertRaises(SystemExit):
+            with CoreCLITests.RedirectStdStreams(
+                stdout=self.devnull, stderr=self.devnull):
+                cut = CLI()
+                cut.ParseCommandArgs(args)
+
+    def testParseOutWithNoFile(self):
+        """Test CLI.ParseCommandArgs().
+
+        Using an output file but ambigous about whether
+        token after output flag is an out file or an in file.
+        Expecting an error.
+
+        """
+
+        args = ("-o", "tests/data/a.mmd")
+        with self.assertRaises(SystemExit):
+            with CoreCLITests.RedirectStdStreams(
+                stdout=self.devnull, stderr=self.devnull):
+                cut = CLI()
+                cut.ParseCommandArgs(args)
+
+    def testParseOutWithNoFileJustStdin(self):
+        """Test CLI.ParseCommandArgs().
+
+        Using stdin alone. Expecting an error.
+
+        """
+
+        args = ("-o", "-")
+        with self.assertRaises(SystemExit):
+            with CoreCLITests.RedirectStdStreams(
+                stdout=self.devnull, stderr=self.devnull):
+                cut = CLI()
+                cut.ParseCommandArgs(args)
+
+    def testParseOutfileAndStdin(self):
+        """Test CLI.ParseCommandArgs().
+
+        Using stdin and an output file.
+
+        """
+
+        ofilepath = os.path.join(self.tempDirPath.name, "x.html")
+        args = ("-o", ofilepath, "-")
+        cut = CLI()
+        cut.ParseCommandArgs(args)
+        self.assertIsNone(cut.args.exportTarget)
+        self.assertEqual(1, len(cut.args.inFiles))
+        self.assertEqual("-", cut.args.inFiles[0])
+        self.assertFalse(cut.args.leanPub)
+        self.assertEqual(ofilepath, cut.args.outFile)
+        self.assertFalse(cut.args.showVersion)
+
+        self.assertFalse(cut._CLI__abandonCLI)
+        self.assertTrue(cut._CLI__useStdin)
+        self.assertFalse(cut._CLI__useStdout)
+        self.assertEqual(ofilepath, cut._CLI__outFilepath)
+        self.assertEqual(1, len(cut._CLI__inputFilepaths))
+        self.assertFalse(cut._CLI__bookTxtIsSpecial)
+        self.assertIsNone(cut._CLI__wildcardExtensionIs)
+
+    def testParseLeanpub(self):
+        """Test CLI.ParseCommandArgs().
+
+        Specifying special treatment of book.txt file.
+
+        """
+
+        cut = CLI()
+        args = ("--leanpub", "-")
+        cut.ParseCommandArgs(args)
+        self.assertIsNone(cut.args.exportTarget)
+        self.assertEqual(1, len(cut.args.inFiles))
+        self.assertEqual("-", cut.args.inFiles[0])
+        self.assertTrue(cut.args.leanPub)
+        self.assertIsNone(cut.args.outFile)
+        self.assertFalse(cut.args.showVersion)
+
+        self.assertFalse(cut._CLI__abandonCLI)
+        self.assertTrue(cut._CLI__useStdin)
+        self.assertTrue(cut._CLI__useStdout)
+        self.assertIsNone(cut._CLI__outFilepath)
+        self.assertEqual(1, len(cut._CLI__inputFilepaths))
+        self.assertTrue(cut._CLI__bookTxtIsSpecial)
+        self.assertIsNone(cut._CLI__wildcardExtensionIs)
+
+    def testParseLeanpubOnly(self):
+        """Test CLI.ParseCommandArgs().
+
+        Specify leanpub flag but no other flags or args.
+        Expecting an error.
+
+        """
+
+        args = ("--leanpub")
+        with self.assertRaises(SystemExit):
+            with CoreCLITests.RedirectStdStreams(
+                stdout=self.devnull, stderr=self.devnull):
+                cut = CLI()
+                cut.ParseCommandArgs(args)
+
+    def testParseUnrecognizedArg(self):
+        """Test CLI.ParseCommandArgs().
+
+        Specify unrecognized flag.
+        Expecting an error.
+
+        """
+
+        args = ("--wat", "-")
+        with self.assertRaises(SystemExit):
+            with CoreCLITests.RedirectStdStreams(
+                stdout=self.devnull, stderr=self.devnull):
+                cut = CLI()
+                cut.ParseCommandArgs(args)
+
+    def testParseExportTargetHtml(self):
+        """Test CLI.ParseCommandArgs().
+
+        Specify unrecognized flag.
+        Expecting an error.
+
+        """
+
+        tgt = "html"
+        expectedExt = "." + tgt;
+        args = ("--export-target", tgt, "-")
+        cut = CLI()
+        cut.ParseCommandArgs(args)
+        self.assertEqual(tgt, cut.args.exportTarget)
+        self.assertEqual(1, len(cut.args.inFiles))
+        self.assertEqual("-", cut.args.inFiles[0])
+        self.assertFalse(cut.args.leanPub)
+        self.assertIsNone(cut.args.outFile)
+        self.assertFalse(cut.args.showVersion)
+
+        self.assertFalse(cut._CLI__abandonCLI)
+        self.assertTrue(cut._CLI__useStdin)
+        self.assertTrue(cut._CLI__useStdout)
+        self.assertIsNone(cut._CLI__outFilepath)
+        self.assertEqual(1, len(cut._CLI__inputFilepaths))
+        self.assertFalse(cut._CLI__bookTxtIsSpecial)
+        self.assertEqual(expectedExt, cut._CLI__wildcardExtensionIs)
+
+    def testParseExportTargetLatex(self):
+        """Test CLI.ParseCommandArgs().
+
+        Specify unrecognized flag.
+        Expecting an error.
+
+        """
+
+        tgt = "latex"
+        expectedExt = ".tex";
+        args = ("--export-target", tgt, "-")
+        cut = CLI()
+        cut.ParseCommandArgs(args)
+        self.assertEqual(tgt, cut.args.exportTarget)
+        self.assertEqual(expectedExt, cut._CLI__wildcardExtensionIs)
+
+    def testParseExportTargetLyx(self):
+        """Test CLI.ParseCommandArgs().
+
+        Specify unrecognized flag.
+        Expecting an error.
+
+        """
+
+        tgt = "lyx"
+        expectedExt = "." + tgt;
+        args = ("--export-target", tgt, "-")
+        cut = CLI()
+        cut.ParseCommandArgs(args)
+        self.assertEqual(tgt, cut.args.exportTarget)
+        self.assertEqual(expectedExt, cut._CLI__wildcardExtensionIs)
+
+    def testParseExportTargetOpml(self):
+        """Test CLI.ParseCommandArgs().
+
+        Specify unrecognized flag.
+        Expecting an error.
+
+        """
+
+        tgt = "opml"
+        expectedExt = "." + tgt;
+        args = ("--export-target", tgt, "-")
+        cut = CLI()
+        cut.ParseCommandArgs(args)
+        self.assertEqual(tgt, cut.args.exportTarget)
+        self.assertEqual(expectedExt, cut._CLI__wildcardExtensionIs)
+
+    def testParseExportTargetRtf(self):
+        """Test CLI.ParseCommandArgs().
+
+        Specify unrecognized flag.
+        Expecting an error.
+
+        """
+
+        tgt = "rtf"
+        expectedExt = "." + tgt;
+        args = ("--export-target", tgt, "-")
+        cut = CLI()
+        cut.ParseCommandArgs(args)
+        self.assertEqual(tgt, cut.args.exportTarget)
+        self.assertEqual(expectedExt, cut._CLI__wildcardExtensionIs)
+
+    def testParseExportTargetOdf(self):
+        """Test CLI.ParseCommandArgs().
+
+        Specify unrecognized flag.
+        Expecting an error.
+
+        """
+
+        tgt = "odf"
+        expectedExt = "." + tgt;
+        args = ("--export-target", tgt, "-")
+        cut = CLI()
+        cut.ParseCommandArgs(args)
+        self.assertEqual(tgt, cut.args.exportTarget)
+        self.assertEqual(expectedExt, cut._CLI__wildcardExtensionIs)
+
+    def testParseExportTargetInvalid(self):
+        """Test CLI.ParseCommandArgs().
+
+        Specify unrecognized flag.
+        Expecting an error.
+
+        """
+
+        args = ("--export-target", "wat", "-")
+        with self.assertRaises(SystemExit):
+            with CoreCLITests.RedirectStdStreams(
+                stdout=self.devnull, stderr=self.devnull):
+                cut = CLI()
+                cut.ParseCommandArgs(args)
 
     # -------------------------------------------------------------------------+
     # test for CLI.Execute()
