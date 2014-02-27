@@ -14,18 +14,23 @@ class Node:
         self.__parent = parentNode
         self.__children = []
 
-    def IsAncestor(self, filePath):
-        if self.__filePath == filePath:
-            return true
-        if self.__parent.__filePath == None:
-            return false
-        return self.__parent.IsAncestor(filePath)
-
-    def AddChild(self, filePath):
-        if self.IsAncestor(filePath):
+    def addChild(self, filePath):
+        if self.isAncestor(filePath):
             fmts = ("Circular reference."
                 " File '{0}' and an ancestor of itself.")
             raise AssertionError(fmts.format(filePath))
         node = Node(filePath, self)
         self.__children.append(node)
         return node
+
+    def filePath(self):
+        return self.__filePath
+
+    def isAncestor(self, filePath):
+        if self.__filePath == filePath:
+            return True
+        if self.__parent == None:
+            return False
+        if self.__parent.__filePath == None:
+            return False
+        return self.__parent.isAncestor(filePath)

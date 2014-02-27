@@ -3,7 +3,7 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 #
 """
-Unit tests for the MarkdownMerge module.
+Unit tests for the MarkdownMerge module, CLI class.
 
 """
 
@@ -13,7 +13,7 @@ import os
 import os.path
 import re
 import sys
-from mdMerge.cli import CLI
+from mdmerge.cli import CLI
 
 import pprint
 
@@ -112,11 +112,11 @@ class CoreCLITests(unittest.TestCase):
         return
 
     # -------------------------------------------------------------------------+
-    # tests for CLI.ParseCommandArgs()
+    # tests for CLI.parseCommandArgs()
     # -------------------------------------------------------------------------+
 
     def testParseVersion(self):
-        """Test CLI.ParseCommandArgs().
+        """Test CLI.parseCommandArgs().
 
         Happy path '--version' argument.
 
@@ -124,11 +124,11 @@ class CoreCLITests(unittest.TestCase):
 
         cut = CLI()
         args = ("--version",)
-        cut.ParseCommandArgs(args)
+        cut.parseCommandArgs(args)
         self.assertTrue(cut.args.showVersion)
 
     def testParseVersionInvalidArgs(self):
-        """Test CLI.ParseCommandArgs().
+        """Test CLI.parseCommandArgs().
 
         '--version' argument, with extra invalid stuff.
 
@@ -139,10 +139,10 @@ class CoreCLITests(unittest.TestCase):
             with CoreCLITests.RedirectStdStreams(
                 stdout=self.devnull, stderr=self.devnull):
                 cut = CLI()
-                cut.ParseCommandArgs(args)
+                cut.parseCommandArgs(args)
 
     def testParseOneInputFile(self):
-        """Test CLI.ParseCommandArgs().
+        """Test CLI.parseCommandArgs().
 
         Happy path. A single input file with no optional arguments.
 
@@ -150,7 +150,7 @@ class CoreCLITests(unittest.TestCase):
 
         cut = CLI()
         args = ("tests/data/a.mmd")
-        cut.ParseCommandArgs(args)
+        cut.parseCommandArgs(args)
         self.assertIsNone(cut.args.exportTarget)
         self.assertEqual(1, len(cut.args.inFiles))
         self.assertEqual("tests/data/a.mmd", cut.args.inFiles[0])
@@ -167,7 +167,7 @@ class CoreCLITests(unittest.TestCase):
         self.assertIsNone(cut._CLI__wildcardExtensionIs)
 
     def testParseStdin(self):
-        """Test CLI.ParseCommandArgs().
+        """Test CLI.parseCommandArgs().
 
         Happy path. Using stdin instead of input files.
 
@@ -175,7 +175,7 @@ class CoreCLITests(unittest.TestCase):
 
         cut = CLI()
         args = ("-")
-        cut.ParseCommandArgs(args)
+        cut.parseCommandArgs(args)
         self.assertIsNone(cut.args.exportTarget)
         self.assertEqual(1, len(cut.args.inFiles))
         self.assertEqual("-", cut.args.inFiles[0])
@@ -192,7 +192,7 @@ class CoreCLITests(unittest.TestCase):
         self.assertIsNone(cut._CLI__wildcardExtensionIs)
 
     def testParseStdinPlusOthers(self):
-        """Test CLI.ParseCommandArgs().
+        """Test CLI.parseCommandArgs().
 
         Using stdin as well as a list of input files. Expecting
         an error.
@@ -204,10 +204,10 @@ class CoreCLITests(unittest.TestCase):
             with CoreCLITests.RedirectStdStreams(
                 stdout=self.devnull, stderr=self.devnull):
                 cut = CLI()
-                cut.ParseCommandArgs(args)
+                cut.parseCommandArgs(args)
 
     def testParseOutWithNoFile(self):
-        """Test CLI.ParseCommandArgs().
+        """Test CLI.parseCommandArgs().
 
         Using an output file but ambigous about whether
         token after output flag is an out file or an in file.
@@ -220,10 +220,10 @@ class CoreCLITests(unittest.TestCase):
             with CoreCLITests.RedirectStdStreams(
                 stdout=self.devnull, stderr=self.devnull):
                 cut = CLI()
-                cut.ParseCommandArgs(args)
+                cut.parseCommandArgs(args)
 
     def testParseOutWithNoFileJustStdin(self):
-        """Test CLI.ParseCommandArgs().
+        """Test CLI.parseCommandArgs().
 
         Using stdin alone. Expecting an error.
 
@@ -234,10 +234,10 @@ class CoreCLITests(unittest.TestCase):
             with CoreCLITests.RedirectStdStreams(
                 stdout=self.devnull, stderr=self.devnull):
                 cut = CLI()
-                cut.ParseCommandArgs(args)
+                cut.parseCommandArgs(args)
 
     def testParseOutfileAndStdin(self):
-        """Test CLI.ParseCommandArgs().
+        """Test CLI.parseCommandArgs().
 
         Using stdin and an output file.
 
@@ -246,7 +246,7 @@ class CoreCLITests(unittest.TestCase):
         ofilepath = os.path.join(self.tempDirPath.name, "x.html")
         args = ("-o", ofilepath, "-")
         cut = CLI()
-        cut.ParseCommandArgs(args)
+        cut.parseCommandArgs(args)
         self.assertIsNone(cut.args.exportTarget)
         self.assertEqual(1, len(cut.args.inFiles))
         self.assertEqual("-", cut.args.inFiles[0])
@@ -263,7 +263,7 @@ class CoreCLITests(unittest.TestCase):
         self.assertIsNone(cut._CLI__wildcardExtensionIs)
 
     def testParseLeanpub(self):
-        """Test CLI.ParseCommandArgs().
+        """Test CLI.parseCommandArgs().
 
         Specifying special treatment of book.txt file.
 
@@ -271,7 +271,7 @@ class CoreCLITests(unittest.TestCase):
 
         cut = CLI()
         args = ("--leanpub", "-")
-        cut.ParseCommandArgs(args)
+        cut.parseCommandArgs(args)
         self.assertIsNone(cut.args.exportTarget)
         self.assertEqual(1, len(cut.args.inFiles))
         self.assertEqual("-", cut.args.inFiles[0])
@@ -288,7 +288,7 @@ class CoreCLITests(unittest.TestCase):
         self.assertIsNone(cut._CLI__wildcardExtensionIs)
 
     def testParseLeanpubOnly(self):
-        """Test CLI.ParseCommandArgs().
+        """Test CLI.parseCommandArgs().
 
         Specify leanpub flag but no other flags or args.
         Expecting an error.
@@ -300,10 +300,10 @@ class CoreCLITests(unittest.TestCase):
             with CoreCLITests.RedirectStdStreams(
                 stdout=self.devnull, stderr=self.devnull):
                 cut = CLI()
-                cut.ParseCommandArgs(args)
+                cut.parseCommandArgs(args)
 
     def testParseUnrecognizedArg(self):
-        """Test CLI.ParseCommandArgs().
+        """Test CLI.parseCommandArgs().
 
         Specify unrecognized flag.
         Expecting an error.
@@ -315,10 +315,10 @@ class CoreCLITests(unittest.TestCase):
             with CoreCLITests.RedirectStdStreams(
                 stdout=self.devnull, stderr=self.devnull):
                 cut = CLI()
-                cut.ParseCommandArgs(args)
+                cut.parseCommandArgs(args)
 
     def testParseExportTargetHtml(self):
-        """Test CLI.ParseCommandArgs().
+        """Test CLI.parseCommandArgs().
 
         Specify unrecognized flag.
         Expecting an error.
@@ -329,7 +329,7 @@ class CoreCLITests(unittest.TestCase):
         expectedExt = "." + tgt;
         args = ("--export-target", tgt, "-")
         cut = CLI()
-        cut.ParseCommandArgs(args)
+        cut.parseCommandArgs(args)
         self.assertEqual(tgt, cut.args.exportTarget)
         self.assertEqual(1, len(cut.args.inFiles))
         self.assertEqual("-", cut.args.inFiles[0])
@@ -346,7 +346,7 @@ class CoreCLITests(unittest.TestCase):
         self.assertEqual(expectedExt, cut._CLI__wildcardExtensionIs)
 
     def testParseExportTargetLatex(self):
-        """Test CLI.ParseCommandArgs().
+        """Test CLI.parseCommandArgs().
 
         Specify unrecognized flag.
         Expecting an error.
@@ -357,12 +357,12 @@ class CoreCLITests(unittest.TestCase):
         expectedExt = ".tex";
         args = ("--export-target", tgt, "-")
         cut = CLI()
-        cut.ParseCommandArgs(args)
+        cut.parseCommandArgs(args)
         self.assertEqual(tgt, cut.args.exportTarget)
         self.assertEqual(expectedExt, cut._CLI__wildcardExtensionIs)
 
     def testParseExportTargetLyx(self):
-        """Test CLI.ParseCommandArgs().
+        """Test CLI.parseCommandArgs().
 
         Specify unrecognized flag.
         Expecting an error.
@@ -373,12 +373,12 @@ class CoreCLITests(unittest.TestCase):
         expectedExt = "." + tgt;
         args = ("--export-target", tgt, "-")
         cut = CLI()
-        cut.ParseCommandArgs(args)
+        cut.parseCommandArgs(args)
         self.assertEqual(tgt, cut.args.exportTarget)
         self.assertEqual(expectedExt, cut._CLI__wildcardExtensionIs)
 
     def testParseExportTargetOpml(self):
-        """Test CLI.ParseCommandArgs().
+        """Test CLI.parseCommandArgs().
 
         Specify unrecognized flag.
         Expecting an error.
@@ -389,12 +389,12 @@ class CoreCLITests(unittest.TestCase):
         expectedExt = "." + tgt;
         args = ("--export-target", tgt, "-")
         cut = CLI()
-        cut.ParseCommandArgs(args)
+        cut.parseCommandArgs(args)
         self.assertEqual(tgt, cut.args.exportTarget)
         self.assertEqual(expectedExt, cut._CLI__wildcardExtensionIs)
 
     def testParseExportTargetRtf(self):
-        """Test CLI.ParseCommandArgs().
+        """Test CLI.parseCommandArgs().
 
         Specify unrecognized flag.
         Expecting an error.
@@ -405,12 +405,12 @@ class CoreCLITests(unittest.TestCase):
         expectedExt = "." + tgt;
         args = ("--export-target", tgt, "-")
         cut = CLI()
-        cut.ParseCommandArgs(args)
+        cut.parseCommandArgs(args)
         self.assertEqual(tgt, cut.args.exportTarget)
         self.assertEqual(expectedExt, cut._CLI__wildcardExtensionIs)
 
     def testParseExportTargetOdf(self):
-        """Test CLI.ParseCommandArgs().
+        """Test CLI.parseCommandArgs().
 
         Specify unrecognized flag.
         Expecting an error.
@@ -421,12 +421,12 @@ class CoreCLITests(unittest.TestCase):
         expectedExt = "." + tgt;
         args = ("--export-target", tgt, "-")
         cut = CLI()
-        cut.ParseCommandArgs(args)
+        cut.parseCommandArgs(args)
         self.assertEqual(tgt, cut.args.exportTarget)
         self.assertEqual(expectedExt, cut._CLI__wildcardExtensionIs)
 
     def testParseExportTargetInvalid(self):
-        """Test CLI.ParseCommandArgs().
+        """Test CLI.parseCommandArgs().
 
         Specify unrecognized flag.
         Expecting an error.
@@ -438,7 +438,7 @@ class CoreCLITests(unittest.TestCase):
             with CoreCLITests.RedirectStdStreams(
                 stdout=self.devnull, stderr=self.devnull):
                 cut = CLI()
-                cut.ParseCommandArgs(args)
+                cut.parseCommandArgs(args)
 
     # -------------------------------------------------------------------------+
     # test for CLI.Execute()
@@ -463,7 +463,7 @@ class CoreCLITests(unittest.TestCase):
 
         cut = CLI(stdin=rwMock, stdout=rwMock)
         args = ("-o", outputFilePath, inputFilePath)
-        cut.ParseCommandArgs(args)
+        cut.parseCommandArgs(args)
         rwMock.reset_mock()
         cut.Execute()
         self.assertTrue(self._AreFilesIdentical(
@@ -488,7 +488,7 @@ class CoreCLITests(unittest.TestCase):
         rwMock = unittest.mock.MagicMock()
         cut = CLI(stdin=rwMock, stdout=rwMock)
         args = ("--version", )
-        cut.ParseCommandArgs(args)
+        cut.parseCommandArgs(args)
         rwMock.reset_mock()
         cut.Execute()
         calls = [

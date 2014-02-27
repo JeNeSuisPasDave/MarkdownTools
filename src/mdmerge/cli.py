@@ -106,7 +106,23 @@ class CLI:
             dest='inFiles', metavar='inFile', nargs='*', type=str,
             help="One or more files to merge, or just '-' for stdin")
 
-    def _ValidateArgs(self):
+    def _isSequenceNotString(self, obj):
+        return (
+            not hasattr(obj, "strip") and
+            hasattr(obj, "__getitem__") or
+            hasattr(obj, "__iter__"))
+
+    def _isSequenceOfChars(self, obj):
+        if not self._isSequenceNotString(obj):
+            return False
+        if (0 == len(obj)):
+            return False
+        for c in obj:
+            if 1 != len(c):
+                return False
+        return True
+
+    def _validateArgs(self):
         """Validate the command line arguments and set fields based on those
         arguments.
 
@@ -124,7 +140,7 @@ class CLI:
             return
         if self.args.outFile != None:
             self.__useStdout = False
-            self.__outFilepath = self._ValidateOutputFilepath(
+            self.__outFilepath = self._validateOutputFilepath(
                 self.args.outFile)
         if 0 == len(self.args.inFiles):
             self.parser.error(
@@ -137,12 +153,7 @@ class CLI:
         # a single string element.
         #
         if 0 != len(self.args.inFiles):
-            isArrayOfChars = True
-            for c in self.args.inFiles:
-                if 1 != len(c):
-                    isArrayOfChars = False
-                    break
-            if (isArrayOfChars):
+            if self._isSequenceOfChars(self.args.inFiles):
                 self.args.inFiles = [''.join(self.args.inFiles)]
         # Now validate the input file paths (or the '-' stdin designator)
         #
@@ -153,13 +164,13 @@ class CLI:
                 ffp = CLI.__STDIN_FILENAME
                 self.__useStdin = True
             else:
-                ffp = self._ValidateInputFilepath(fp)
+                ffp = self._validateInputFilepath(fp)
             self.__inputFilepaths.append(ffp)
-        self._ValidateExportTarget(self.args.exportTarget)
+        self._validateExportTarget(self.args.exportTarget)
         if self.args.leanPub:
             self.__bookTxtIsSpecial = True
 
-    def _ValidateExportTarget(self, exportTarget):
+    def _validateExportTarget(self, exportTarget):
         if exportTarget is not None:
             if 'html' ==  exportTarget:
                 self.__wildcardExtensionIs = ".html"
@@ -177,7 +188,7 @@ class CLI:
                 raise ValueError(
                     "Unknown export target: {0}".format(exportTarget))
 
-    def _ValidateInputFilepath(self, filepath):
+    def _validateInputFilepath(self, filepath):
         """Verify that if the file exists it is a regular file, or if the file
         doesn't exist that the parent directory does exist.
 
@@ -211,7 +222,7 @@ class CLI:
             self.parser.error(
                 "'{0}' does not exist.".format(filepath))
 
-    def _ValidateOutputFilepath(self, filepath):
+    def _validateOutputFilepath(self, filepath):
         """Verify that if the file exists it is a regular file, or if the file
         doesn't exist that the parent directory does exist.
 
@@ -253,7 +264,7 @@ class CLI:
                 " invalid output file path")
             self.parser.error(fmts.format(dirpath))
 
-    def _ScanFile(self, ifile):
+    def _scanFile(self, ifile):
         """Store input lines into output file. If the input line is an
         include statement, then insert that files lines into the output
         file.
@@ -264,7 +275,7 @@ class CLI:
             print(line, file=self.__outfile, end='')
             print("[DTH] {0}".format(line), end='')
 
-    def _ShowVersion(self):
+    def _showVersion(self):
         """Show the version only.
 
         """
@@ -274,7 +285,7 @@ class CLI:
         print("mdmerge version {0}".format(mdMerge.__version__),
             file=self.__stdout)
 
-    def _StdinIsTTY(self):
+    def _stdinIsTTY(self):
         """Detect whether the stdin is mapped to a terminal console.
 
         I found this technique in the answer by thg435 here:
@@ -291,7 +302,7 @@ class CLI:
         else: # not piped or redirected, so assume terminal input
             return False
 
-    def Execute(self):
+    def execute(self):
         """Merge the files.
 
         """
@@ -300,7 +311,7 @@ class CLI:
             return
 
         if self.args.showVersion:
-            self._ShowVersion()
+            self._showVersion()
             return
 
         if self.__useStdout:
@@ -313,16 +324,16 @@ class CLI:
         for ipath in self.__inputFilepaths:
             if CLI.__STDIN_FILENAME == ipath:
                 ifile = self.__stdin
-                self._ScanFile(ifile)
+                self._scanFile(ifile)
             else:
                 ifile = open(ipath, 'r')
-                self._ScanFile(ifile)
+                self._scanFile(ifile)
                 ifile.close()
                 self.__outfile.close()
                 print("[DTH] Here is the output file")
                 print(open(self.__outFilepath).read())
 
-    def ParseCommandArgs(self, args):
+    def parseCommandArgs(self, args):
         """Parse the command line arguments.
 
         """
@@ -335,10 +346,10 @@ class CLI:
             with CLI.RedirectStdStreams(
                 stdout=self.__stdout, stderr=self.__stderr):
                 self.args = self.parser.parse_args(args)
-                self._ValidateArgs()
+                self._validateArgs()
         else:
             self.args = self.parser.parse_args(args)
-            self._ValidateArgs()
+            self._validateArgs()
 
 
 # -------------------------------------------------------------------------+
@@ -348,7 +359,7 @@ class CLI:
 if '__main__' == __name__:
     try:
         m = CLI()
-        m.ParseCommandArgs(sys.argv[1:])
-        m.Execute()
+        m.parseCommandArgs(sys.argv[1:])
+        m.execute()
     except KeyboardInterrupt:
         print("")
