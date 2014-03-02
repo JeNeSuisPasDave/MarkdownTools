@@ -13,7 +13,8 @@ import os
 import os.path
 import re
 import sys
-from mdmerge.merge import MarkdownMerge
+import io
+from mdmerge.markdownMerge import MarkdownMerge
 from mdmerge.node import Node
 
 import pprint
@@ -64,8 +65,10 @@ class MarkdownMergeTests(unittest.TestCase):
 
         import difflib
 
-        fileTextA = open(filePathA).read().splitlines(True)
-        fileTextB = open(filePathB).read().splitlines(True)
+        with io.open(filePathA) as fileA, \
+        io.open(filePathB) as fileB:
+            fileTextA = fileA.read().splitlines(True)
+            fileTextB = fileB.read().splitlines(True)
         difference = list(difflib.context_diff(fileTextA, fileTextB, n=1))
         diffLineCount = len(difference)
         if 0 == diffLineCount:
@@ -119,11 +122,63 @@ class MarkdownMergeTests(unittest.TestCase):
     def testEmptyInput(self):
         """Test MarkdownMerge.merge().
 
-        Happy path '--version' argument.
+        A zero length file should produce a zero length output.
 
         """
 
-        cut = MarkdownMerge(".html")
-        inFilePath = os.path.join(self.__dataDir, "empty.mmd")
-        inFileNode = Node(inFilePath)
-        cut.merge(inFileNode, sys.stdout)
+        infilePath = os.path.join(self.__dataDir, "empty.mmd")
+        outfilePath = os.path.join(self.tempDirPath.name, "result.mmd")
+        errfilePath = os.path.join(self.tempDirPath.name, "result.err")
+        with io.open(outfilePath, "w") as outfile, \
+            io.open(errfilePath, "w") as errfile, \
+            MarkdownMergeTests.RedirectStdStreams(
+                stdout=outfile, stderr=errfile):
+            cut = MarkdownMerge(".html")
+            infileNode = Node(infilePath)
+            cut.merge(infileNode, sys.stdout)
+        self.assertEqual(0, os.stat(outfilePath).st_size)
+        self.assertEqual(0, os.stat(errfilePath).st_size)
+
+    def testNoIncludes(self):
+        """Test MarkdownMerge.merge().
+
+        A file with no includes should produce an identical file.
+
+        """
+
+        infilePath = os.path.join(self.__dataDir, "aa.mmd")
+        expectedSize = os.stat(infilePath).st_size
+        outfilePath = os.path.join(self.tempDirPath.name, "result.mmd")
+        errfilePath = os.path.join(self.tempDirPath.name, "result.err")
+        with io.open(outfilePath, "w") as outfile, \
+            io.open(errfilePath, "w") as errfile, \
+            MarkdownMergeTests.RedirectStdStreams(
+                stdout=outfile, stderr=errfile):
+            cut = MarkdownMerge(".html")
+            infileNode = Node(infilePath)
+            cut.merge(infileNode, sys.stdout)
+        self.assertEqual(expectedSize, os.stat(outfilePath).st_size)
+        self.assertEqual(0, os.stat(errfilePath).st_size)
+
+    def testSingleIncludeMarked(self):
+        """Test MarkdownMerge.merge().
+
+        A file with one Marked include.
+
+        """
+
+        infilePath = os.path.join(self.__dataDir, "a.mmd")
+        expectedfilePath = os.path.join(self.__dataDir, "expected-a.mmd")
+        expectedSize = os.stat(expectedfilePath).st_size
+        outfilePath = os.path.join(self.tempDirPath.name, "result.mmd")
+        errfilePath = os.path.join(self.tempDirPath.name, "result.err")
+        with io.open(outfilePath, "w") as outfile, \
+            io.open(errfilePath, "w") as errfile, \
+            MarkdownMergeTests.RedirectStdStreams(
+                stdout=outfile, stderr=errfile):
+            cut = MarkdownMerge(".html")
+            infileNode = Node(infilePath)
+            cut.merge(infileNode, sys.stdout)
+        self.assertEqual(expectedSize, os.stat(outfilePath).st_size)
+        self.assertEqual(0, os.stat(errfilePath).st_size)
+        self._AreFilesIdentical(expectedfilePath, outfilePath)
