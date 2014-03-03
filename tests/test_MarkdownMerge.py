@@ -206,32 +206,14 @@ class MarkdownMergeTests(unittest.TestCase):
 
         self._mergeTest("aa.mmd", "aa.mmd")
 
-    def testSingleIncludeMarked(self):
+    def testSingleIncludeFencedTransclusion(self):
         """Test MarkdownMerge.merge().
 
-        A file with one Marked include.
+        A file with one MMD transclusion inside an unnamed code fence.
 
         """
 
-        self._mergeTest("a.mmd", "expected-a.mmd")
-
-    def testSingleIncludeTransclusion(self):
-        """Test MarkdownMerge.merge().
-
-        A file with one MMD transclusion.
-
-        """
-
-        self._mergeTest("t-a.mmd", "expected-t-a.mmd")
-
-    def testSingleIncludeNamedFencedTransclusion(self):
-        """Test MarkdownMerge.merge().
-
-        A file with one MMD transclusion inside a named code fence.
-
-        """
-
-        self._mergeTest("t-c-named.mmd", "expected-t-c-named.mmd")
+        self._mergeTest("t-c.mmd", "expected-t-c.mmd")
 
     def testSingleIncludeLeanpubCode(self):
         """Test MarkdownMerge.merge().
@@ -251,3 +233,29 @@ class MarkdownMergeTests(unittest.TestCase):
 
         self._mergeTest("lpt-a.mmd", "expected-lpt-a.mmd")
 
+    def testSingleIncludeMarked(self):
+        """Test MarkdownMerge.merge().
+
+        A file with one Marked include.
+
+        """
+
+        self._mergeTest("a.mmd", "expected-a.mmd")
+
+    def testSingleIncludeNamedFencedTransclusion(self):
+        """Test MarkdownMerge.merge().
+
+        A file with one MMD transclusion inside a named code fence.
+
+        """
+
+        self._mergeTest("t-c-named.mmd", "expected-t-c-named.mmd")
+
+    def testSingleIncludeTransclusion(self):
+        """Test MarkdownMerge.merge().
+
+        A file with one MMD transclusion.
+
+        """
+
+        self._mergeTest("t-a.mmd", "expected-t-a.mmd")
