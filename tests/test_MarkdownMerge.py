@@ -61,7 +61,7 @@ class MarkdownMergeTests(unittest.TestCase):
         self.__root = os.path.dirname(__file__)
         self.__dataDir = os.path.join(self.__root, "data")
 
-    def _AreFilesIdentical(self, filePathA, filePathB):
+    def _areFilesIdentical(self, filePathA, filePathB):
 
         import difflib
 
@@ -76,7 +76,65 @@ class MarkdownMergeTests(unittest.TestCase):
         pprint.pprint(difference)
         return False;
 
-    def _SideEffectExpandUser(self, path):
+    def _mergeTest(self, infilePath, expectedfilePath):
+        """Take a single inputfile and produce a merged output file, then
+        check the results against a file containing the expected content.
+
+        Args:
+            infilePath: the input file path, relative to self.__dataDir
+            expectedFilePath: the expected file path, relative to
+                self.__dataDir
+
+        """
+
+        infilePath = os.path.join(self.__dataDir, infilePath)
+        expectedfilePath = os.path.join(self.__dataDir, expectedfilePath)
+        expectedSize = os.stat(expectedfilePath).st_size
+        outfilePath = os.path.join(self.tempDirPath.name, "result.mmd")
+        errfilePath = os.path.join(self.tempDirPath.name, "result.err")
+        with io.open(outfilePath, "w") as outfile, \
+            io.open(errfilePath, "w") as errfile, \
+            MarkdownMergeTests.RedirectStdStreams(
+                stdout=outfile, stderr=errfile):
+            cut = MarkdownMerge(".html")
+            infileNode = Node(infilePath)
+            cut.merge(infileNode, sys.stdout)
+        self.assertEqual(expectedSize, os.stat(outfilePath).st_size)
+        self.assertEqual(0, os.stat(errfilePath).st_size)
+        self.assertTrue(self._areFilesIdentical(expectedfilePath, outfilePath))
+
+    def _mergeTry(self, infilePath, expectedfilePath):
+        """Take a single inputfile and produce a merged output file, then
+        dump the output to stdout.
+
+        Args:
+            infilePath: the input file path, relative to self.__dataDir
+            expectedFilePath: the expected file path, relative to
+                self.__dataDir
+
+        """
+
+        infilePath = os.path.join(self.__dataDir, infilePath)
+        expectedfilePath = os.path.join(self.__dataDir, expectedfilePath)
+        expectedSize = os.stat(expectedfilePath).st_size
+        outfilePath = os.path.join(self.tempDirPath.name, "result.mmd")
+        errfilePath = os.path.join(self.tempDirPath.name, "result.err")
+        with io.open(outfilePath, "w") as outfile, \
+            io.open(errfilePath, "w") as errfile, \
+            MarkdownMergeTests.RedirectStdStreams(
+                stdout=outfile, stderr=errfile):
+            cut = MarkdownMerge(".html")
+            infileNode = Node(infilePath)
+            cut.merge(infileNode, sys.stdout)
+        with io.open(outfilePath, "r") as outfile:
+            for line in outfile:
+                print(line, end='')
+        if 0 != os.stat(errfilePath).st_size:
+            with io.open(errfilePath, "r") as errfile:
+                for line in errfile:
+                    print(line, end='')
+
+    def _sideEffectExpandUser(self, path):
         if not path.startswith("~"):
             return path
         path = path.replace("~", self.tempDirPath.name)
@@ -146,19 +204,7 @@ class MarkdownMergeTests(unittest.TestCase):
 
         """
 
-        infilePath = os.path.join(self.__dataDir, "aa.mmd")
-        expectedSize = os.stat(infilePath).st_size
-        outfilePath = os.path.join(self.tempDirPath.name, "result.mmd")
-        errfilePath = os.path.join(self.tempDirPath.name, "result.err")
-        with io.open(outfilePath, "w") as outfile, \
-            io.open(errfilePath, "w") as errfile, \
-            MarkdownMergeTests.RedirectStdStreams(
-                stdout=outfile, stderr=errfile):
-            cut = MarkdownMerge(".html")
-            infileNode = Node(infilePath)
-            cut.merge(infileNode, sys.stdout)
-        self.assertEqual(expectedSize, os.stat(outfilePath).st_size)
-        self.assertEqual(0, os.stat(errfilePath).st_size)
+        self._mergeTest("aa.mmd", "aa.mmd")
 
     def testSingleIncludeMarked(self):
         """Test MarkdownMerge.merge().
@@ -167,18 +213,41 @@ class MarkdownMergeTests(unittest.TestCase):
 
         """
 
-        infilePath = os.path.join(self.__dataDir, "a.mmd")
-        expectedfilePath = os.path.join(self.__dataDir, "expected-a.mmd")
-        expectedSize = os.stat(expectedfilePath).st_size
-        outfilePath = os.path.join(self.tempDirPath.name, "result.mmd")
-        errfilePath = os.path.join(self.tempDirPath.name, "result.err")
-        with io.open(outfilePath, "w") as outfile, \
-            io.open(errfilePath, "w") as errfile, \
-            MarkdownMergeTests.RedirectStdStreams(
-                stdout=outfile, stderr=errfile):
-            cut = MarkdownMerge(".html")
-            infileNode = Node(infilePath)
-            cut.merge(infileNode, sys.stdout)
-        self.assertEqual(expectedSize, os.stat(outfilePath).st_size)
-        self.assertEqual(0, os.stat(errfilePath).st_size)
-        self._AreFilesIdentical(expectedfilePath, outfilePath)
+        self._mergeTest("a.mmd", "expected-a.mmd")
+
+    def testSingleIncludeTransclusion(self):
+        """Test MarkdownMerge.merge().
+
+        A file with one MMD transclusion.
+
+        """
+
+        self._mergeTest("t-a.mmd", "expected-t-a.mmd")
+
+    def testSingleIncludeNamedFencedTransclusion(self):
+        """Test MarkdownMerge.merge().
+
+        A file with one MMD transclusion inside a named code fence.
+
+        """
+
+        self._mergeTest("t-c-named.mmd", "expected-t-c-named.mmd")
+
+    def testSingleIncludeLeanpubCode(self):
+        """Test MarkdownMerge.merge().
+
+        A file with one leanpub include specification.
+
+        """
+
+        self._mergeTest("lp-a.mmd", "expected-lp-a.mmd")
+
+    def testSingleIncludeLeanpubTitledCode(self):
+        """Test MarkdownMerge.merge().
+
+        A file with one titled leanpub include specification.
+
+        """
+
+        self._mergeTest("lpt-a.mmd", "expected-lpt-a.mmd")
+

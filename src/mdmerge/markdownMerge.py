@@ -22,8 +22,8 @@ class MarkdownMerge:
         self.__reoMarkedInclude = re.compile("^<<\[(.+)\]$")
         self.__reoLeanpubInclude = re.compile("^<<\((.+)\)$")
         self.__reoLeanpubCodeInclude = re.compile("^<<\[.*\]\((.+)\)$")
-        self.__reoCodeFence = re.compile("^~~~[a-zA-Z0-9]+$")
-        self.__reoFence = re.compile("^~~~$")
+        self.__reoCodeFence = re.compile("^\~\~\~[a-zA-Z0-9]+$")
+        self.__reoFence = re.compile("^\~\~\~$")
         self.buf = deque()
 
     def _findIncludePath(self, lines):
@@ -33,13 +33,20 @@ class MarkdownMerge:
             lines: up to 5 lines of input to be examined for file
                 include specifications
         Returns:
-            None if the line is not an include specification. Otherwise,
-            returns the file specification as a string value.
+            A tuple containing, in order:
+                includePath: None if the line is not an include
+                    specification. Otherwise, returns the file
+                    specification as a string value.
+                isCode: True if the include specification is for code;
+                    otherwise, False.
+                needsFencing: True if the code include needs to be wrapped
+                    in a fence; False if not a code include or if fence already
+                    exists.
 
         """
 
         if None == lines:
-            return None
+            return None, False, False
 
         # look for code file transclusion specification, which is:
         #
@@ -62,7 +69,7 @@ class MarkdownMerge:
             and self._lineIsEndingFence(lines[3])):
                 spec = self._findTransclusion(lines[2])
                 if (None != spec):
-                    return spec
+                    return spec, True, False
 
         # look for normal file transclusion specification, which is:
         #
@@ -75,7 +82,7 @@ class MarkdownMerge:
             and self._stringIsNullOrWhitespace(lines[2])):
                 spec = self._findTransclusion(lines[1])
                 if (None != spec):
-                    return spec
+                    return spec, False, False
 
         # look for Marked file include specification, which is:
         #
@@ -88,7 +95,7 @@ class MarkdownMerge:
             and self._stringIsNullOrWhitespace(lines[2])):
                 spec = self._findMarkedInclude(lines[1])
                 if (None != spec):
-                    return spec
+                    return spec, False, False
 
         # look for Leanpub file include specification, which is:
         #
@@ -102,11 +109,11 @@ class MarkdownMerge:
             and self._stringIsNullOrWhitespace(lines[2])):
                 spec = self._findLeanpubInclude(lines[1])
                 if (None != spec):
-                    return spec
+                    return spec, True, True
 
         # Get out
         #
-        return None
+        return None, False, False
 
     def _findLeanpubInclude(self, line):
         """Parse the line looking for a Leanpub file include
@@ -257,10 +264,12 @@ class MarkdownMerge:
             return False
         return True
 
-    def _mergedLines(self, mainDocumentPath, infileNode, infile):
+    def _mergedLines(self,
+        mainDocumentPath, infileNode, infile, isCode, needsFence):
         """A generator function that examines each line of the
         input file and recursively calls itself for each included
-        file.
+        file. If the file is code, then include specifications are not
+        followed but are reproduced as is.
 
         Args:
             mainDocumentPath: the absolute file path of the main document;
@@ -268,6 +277,11 @@ class MarkdownMerge:
                 in include specifications.
             infileNode: the Node object representing the input file
             infile: the file object of the opened input file
+            isCode: True if the include specification is for code;
+                otherwise, False.
+            needsFence: True if the code include needs to be wrapped
+                in a fence; False if not a code include or if fence already
+                exists.
 
         Returns:
             The next line to be written to the output file, or None
@@ -282,7 +296,14 @@ class MarkdownMerge:
         buf5.append(None) # align with buf3 so that buf3 always
         buf5.append(None) #   corresponds to buf5[2:4]
 
+        startFenceProduced = False
+        endFenceProduced = False
+
         while True:
+            if (needsFence
+            and not startFenceProduced):
+                self.buf.append("~~~")
+                startFenceProduced = True
             line = infile.readline()
             if not line:
                 # at end of file, so just move buf5 into buf
@@ -291,7 +312,14 @@ class MarkdownMerge:
                     if None != bline:
                         self.buf.append(bline)
                 if 0 == len(self.buf):
-                    break;
+                    if (needsFence
+                    and not endFenceProduced):
+                        self.buf.append("~~~")
+                        endFenceProduced = True
+                    else:
+                        break;
+            elif isCode:
+                self.buf.append(line);
             else:
                 if 5 == len(buf5):
                     # roll line out of buf5 into buf, so we don't lose it
@@ -302,7 +330,8 @@ class MarkdownMerge:
                 buf5.append(line)
                 buf3.append(line)
                 # check whether this is a 5-line include pattern, ...
-                includePath = self._findIncludePath(buf5)
+                includePath, lclIsCode, lclNeedsFence = (
+                    self._findIncludePath(buf5))
                 if includePath:
                     # consuming blank line, the start of the fence, and the
                     # include.
@@ -313,7 +342,8 @@ class MarkdownMerge:
                     buf3.clear()
                 else:
                     # ... or a 3-line include pattern.
-                    includePath = self._findIncludePath(buf3)
+                    includePath, lclIsCode, lclNeedsFence = (
+                        self._findIncludePath(buf3))
                     if includePath:
                         # consuming the preceding two buffered lines,
                         # then the blank line and the include
@@ -334,7 +364,8 @@ class MarkdownMerge:
                     includedfileNode = infileNode.addChild(absIncludePath)
                     with io.open(absIncludePath, "r") as includedfile:
                         for deeperLine in self._mergedLines(
-                            mainDocumentPath, includedfileNode, includedfile):
+                            mainDocumentPath, includedfileNode, includedfile,
+                            lclIsCode, lclNeedsFence):
                             yield deeperLine
             if 0 != len(self.buf):
                 yield self.buf.popleft()
@@ -364,38 +395,9 @@ class MarkdownMerge:
         infilePath = infileNode.filePath()
         absInfilePath = os.path.abspath(infilePath)
         with io.open(absInfilePath, "r") as infile:
-            for line in self._mergedLines(absInfilePath, infileNode, infile):
+            for line in self._mergedLines(
+                    absInfilePath, infileNode, infile, False, False):
                 if None == line:
                     continue
                 outline = line.rstrip("\r\n")
                 outfile.write(outline + '\n')
-
-    def merge2(self, infileNode, infile, outFile):
-        """Read every line of infile and write to outFile. If infile
-        line is an include statement, then read the specified file
-        into the outFile by calling Merge() recursively.
-
-        """
-
-        isFirstLine = True
-        fileIsLeanpubIndex = False
-        fileIsMultimarkdownIndex = False
-        for line in infile:
-            if isFirstLine:
-                isFirstLine = False
-                if (self._isLeanpubIndexMarker(line)):
-                    fileIsLeanpubIndex = True
-                    continue
-                if (self._isMultiMarkdownIndexMarker(line)):
-                    fileIsMultimarkdownIndex = True
-                    continue
-            mergeFilePath = _findMergeInclude(line)
-            if mergeFilePath is not None:
-                nextFilePath = self._getFullPath(mergeFilePath)
-                nextFile = open(nextFilePath, 'r')
-                nextFileNode = infileNode.AddNode(nextFilePath)
-                self.Merge(nextFileNode, nextFile, outFile)
-                nextFile.close()
-            else:
-                print(line, file=self.__outfile, end='')
-
