@@ -43,18 +43,6 @@ class MarkdownMergeTests(unittest.TestCase):
             sys.stdout = self.old_stdout
             sys.stderr = self.old_stderr
 
-
-    # NOTE: many of theses tests use a mock for expanduser to change the
-    #       default location of the data file to a temporary directory so
-    #       that the unit tests do not trash the hotp.data file of the user
-    #       running the tests.
-    #
-    # NOTE: some of these tests use a mock for _getKeyStretches to force a much
-    #       faster key stretch algorithm than is used in the normal execution
-    #       mode. This is done so the unit tests are fast and developers won't
-    #       be tempted to bypass the (otherwise slow) tests.
-    #
-
     def __init__(self, *args):
         self.devnull = open(os.devnull, "w")
         super().__init__(*args)
