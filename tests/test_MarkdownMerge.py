@@ -269,3 +269,13 @@ class MarkdownMergeTests(unittest.TestCase):
         """
         with self.assertRaises(AssertionError):
             self._mergeTest("cycle-b.mmd")
+
+    def testChildToSelfCycle(self):
+        """Test MarkdownMerge.merge().
+
+        A parent includes itself.
+
+        """
+        with self.assertRaises(AssertionError):
+            self._mergeTest("cycle-i.mmd")
+
