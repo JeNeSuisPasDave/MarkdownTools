@@ -17,7 +17,7 @@ class Node:
     def addChild(self, filePath):
         if self.isAncestor(filePath):
             fmts = ("Circular reference."
-                " File '{0}' and an ancestor of itself.")
+                " File '{0}' is an ancestor of itself.")
             raise AssertionError(fmts.format(filePath))
         node = Node(filePath, self)
         self.__children.append(node)

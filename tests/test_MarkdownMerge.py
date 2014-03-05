@@ -64,20 +64,21 @@ class MarkdownMergeTests(unittest.TestCase):
         pprint.pprint(difference)
         return False;
 
-    def _mergeTest(self, infilePath, expectedfilePath):
+    def _mergeTest(self, infilePath, expectedfilePath=None):
         """Take a single inputfile and produce a merged output file, then
         check the results against a file containing the expected content.
 
         Args:
             infilePath: the input file path, relative to self.__dataDir
             expectedFilePath: the expected file path, relative to
-                self.__dataDir
+                self.__dataDir. Defaults to None.
 
         """
 
         infilePath = os.path.join(self.__dataDir, infilePath)
-        expectedfilePath = os.path.join(self.__dataDir, expectedfilePath)
-        expectedSize = os.stat(expectedfilePath).st_size
+        if None != expectedfilePath:
+            expectedfilePath = os.path.join(self.__dataDir, expectedfilePath)
+            expectedSize = os.stat(expectedfilePath).st_size
         outfilePath = os.path.join(self.tempDirPath.name, "result.mmd")
         errfilePath = os.path.join(self.tempDirPath.name, "result.err")
         with io.open(outfilePath, "w") as outfile, \
@@ -87,9 +88,11 @@ class MarkdownMergeTests(unittest.TestCase):
             cut = MarkdownMerge(".html")
             infileNode = Node(infilePath)
             cut.merge(infileNode, sys.stdout)
-        self.assertEqual(expectedSize, os.stat(outfilePath).st_size)
         self.assertEqual(0, os.stat(errfilePath).st_size)
-        self.assertTrue(self._areFilesIdentical(expectedfilePath, outfilePath))
+        if None != expectedfilePath:
+            self.assertEqual(expectedSize, os.stat(outfilePath).st_size)
+            self.assertTrue(self._areFilesIdentical(
+                expectedfilePath, outfilePath))
 
     def _mergeTry(self, infilePath, expectedfilePath):
         """Take a single inputfile and produce a merged output file, then
@@ -247,3 +250,22 @@ class MarkdownMergeTests(unittest.TestCase):
         """
 
         self._mergeTest("t-a.mmd", "expected-t-a.mmd")
+
+    def testChildToParentCycle(self):
+        """Test MarkdownMerge.merge().
+
+        A child include file that includes its parent.
+
+        """
+        with self.assertRaises(AssertionError):
+            self._mergeTest("cycle-a.mmd")
+
+    def testChildToAncestorCycle(self):
+        """Test MarkdownMerge.merge().
+
+        A deep child include file that includes an ancestor
+        a couple parents away.
+
+        """
+        with self.assertRaises(AssertionError):
+            self._mergeTest("cycle-b.mmd")
