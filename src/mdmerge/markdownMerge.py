@@ -12,8 +12,11 @@ from collections import deque
 
 class MarkdownMerge:
 
-    def __init__(self, wildcardExtensionIs):
+    def __init__(self,
+        wildcardExtensionIs=".html",
+        bookTxtIsSpecial=False):
         self.__wildcardExtensionIs = wildcardExtensionIs
+        self.__bookTxtIsSpecial = bookTxtIsSpecial
 
         self.__reoLeanpubIndexMarker = re.compile("^frontmatter\:$")
         self.__reoMultiMarkdownIndexMarker = re.compile("^#merge$")
@@ -311,6 +314,8 @@ class MarkdownMerge:
                     bline = buf5.popleft()
                     if None != bline:
                         self.buf.append(bline)
+                    else:
+                        continue # skip leading None objects
                 if 0 == len(self.buf):
                     if (needsFence
                     and not endFenceProduced):
@@ -370,6 +375,52 @@ class MarkdownMerge:
             if 0 != len(self.buf):
                 yield self.buf.popleft()
 
+    def _mergeSingleFile(self,
+        mainDocumentPath, absInfilePath, infileNode, outfile):
+        """Add the merged lines of a single top-level file to the output.
+
+        Args:
+            mainDocumentPath: the absolute file path of the main document;
+                used to determine the location of relative file paths found
+                in include specifications.
+            absInfilePath: the full filename of the input file to process.
+            infileNode: the node representing the input file to process.
+            outfile: the open output file in which to write the merged lines.
+
+        """
+
+        with io.open(absInfilePath, "r") as infile:
+            for line in self._mergedLines(
+                    mainDocumentPath, infileNode, infile, False, False):
+                if None == line:
+                    continue
+                outline = line.rstrip("\r\n")
+                outfile.write(outline + '\n')
+
+    def _mergeIndexFile(self, absIdxfilePath, idxfileNode, outfile):
+        """Treat each line of the index file as an input file. Process
+        each input file to add the merged result to the output file.
+
+        Args:
+            absIdxfilePath: the full filename of the index file to process.
+            idxfileNode: the node representing the index file to process.
+            outfile: the open output file in which to write the merged lines.
+
+        """
+
+        with io.open(absIdxfilePath, "r") as idxfile:
+            for line in idxfile:
+                if None == line:
+                    continue
+                infilePath = line.strip();
+                if 0 == len(infilePath):
+                    continue
+                absInfilePath = self._getAbsolutePath(
+                    absIdxfilePath, infilePath)
+                infileNode = idxfileNode.addChild(absInfilePath)
+                self._mergeSingleFile(
+                    absIdxfilePath, absInfilePath, infileNode, outfile)
+
     def _stringIsNullOrWhitespace(self, s):
         """Detect whether the string is null, empty, or contains only
         whitespace.
@@ -394,10 +445,10 @@ class MarkdownMerge:
     def merge(self, infileNode, outfile):
         infilePath = infileNode.filePath()
         absInfilePath = os.path.abspath(infilePath)
-        with io.open(absInfilePath, "r") as infile:
-            for line in self._mergedLines(
-                    absInfilePath, infileNode, infile, False, False):
-                if None == line:
-                    continue
-                outline = line.rstrip("\r\n")
-                outfile.write(outline + '\n')
+        infileName = os.path.basename(absInfilePath)
+        if (self.__bookTxtIsSpecial
+        and "book.txt".casefold() == infileName.casefold()):
+            self._mergeIndexFile(absInfilePath, infileNode, outfile)
+        else:
+            self._mergeSingleFile(
+                absInfilePath, absInfilePath, infileNode, outfile)

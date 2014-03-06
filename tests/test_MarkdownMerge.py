@@ -14,6 +14,7 @@ import os.path
 import re
 import sys
 import io
+import shutil
 from mdmerge.markdownMerge import MarkdownMerge
 from mdmerge.node import Node
 
@@ -64,7 +65,9 @@ class MarkdownMergeTests(unittest.TestCase):
         pprint.pprint(difference)
         return False;
 
-    def _mergeTest(self, infilePath, expectedfilePath=None):
+    def _mergeTest(self,
+        infilePath, expectedfilePath=None,
+        wildcardExtensionIs=".html", bookTxtIsSpecial=False):
         """Take a single inputfile and produce a merged output file, then
         check the results against a file containing the expected content.
 
@@ -72,6 +75,48 @@ class MarkdownMergeTests(unittest.TestCase):
             infilePath: the input file path, relative to self.__dataDir
             expectedFilePath: the expected file path, relative to
                 self.__dataDir. Defaults to None.
+            wildcardExtensionIs: the extension to substitute if include
+                file extension is a wildcardExtensionIs
+            bookTxtIsSpecial: whether to treat 'book.txt' as a Leanpub index
+                file.
+
+        """
+
+        # TODO: take cut constructor arguments as a dictionary argument
+
+        infilePath = os.path.join(self.__dataDir, infilePath)
+        if None != expectedfilePath:
+            expectedfilePath = os.path.join(self.__dataDir, expectedfilePath)
+            expectedSize = os.stat(expectedfilePath).st_size
+        outfilePath = os.path.join(self.tempDirPath.name, "result.mmd")
+        errfilePath = os.path.join(self.tempDirPath.name, "result.err")
+        with io.open(outfilePath, "w") as outfile, \
+            io.open(errfilePath, "w") as errfile, \
+            MarkdownMergeTests.RedirectStdStreams(
+                stdout=outfile, stderr=errfile):
+            cut = MarkdownMerge(wildcardExtensionIs, bookTxtIsSpecial)
+            infileNode = Node(infilePath)
+            cut.merge(infileNode, sys.stdout)
+        self.assertEqual(0, os.stat(errfilePath).st_size)
+        if None != expectedfilePath:
+            self.assertEqual(expectedSize, os.stat(outfilePath).st_size)
+            self.assertTrue(self._areFilesIdentical(
+                expectedfilePath, outfilePath))
+
+    def _mergeTry(self,
+        infilePath, expectedfilePath=None,
+        wildcardExtensionIs=".html", bookTxtIsSpecial=False):
+        """Take a single inputfile and produce a merged output file, then
+        dump the output to stdout.
+
+        Args:
+            infilePath: the input file path, relative to self.__dataDir
+            expectedFilePath: the expected file path, relative to
+                self.__dataDir
+            wildcardExtensionIs: the extension to substitute if include
+                file extension is a wildcardExtensionIs
+            bookTxtIsSpecial: whether to treat 'book.txt' as a Leanpub index
+                file.
 
         """
 
@@ -85,38 +130,10 @@ class MarkdownMergeTests(unittest.TestCase):
             io.open(errfilePath, "w") as errfile, \
             MarkdownMergeTests.RedirectStdStreams(
                 stdout=outfile, stderr=errfile):
-            cut = MarkdownMerge(".html")
+            cut = MarkdownMerge(wildcardExtensionIs, bookTxtIsSpecial)
             infileNode = Node(infilePath)
             cut.merge(infileNode, sys.stdout)
-        self.assertEqual(0, os.stat(errfilePath).st_size)
-        if None != expectedfilePath:
-            self.assertEqual(expectedSize, os.stat(outfilePath).st_size)
-            self.assertTrue(self._areFilesIdentical(
-                expectedfilePath, outfilePath))
 
-    def _mergeTry(self, infilePath, expectedfilePath):
-        """Take a single inputfile and produce a merged output file, then
-        dump the output to stdout.
-
-        Args:
-            infilePath: the input file path, relative to self.__dataDir
-            expectedFilePath: the expected file path, relative to
-                self.__dataDir
-
-        """
-
-        infilePath = os.path.join(self.__dataDir, infilePath)
-        expectedfilePath = os.path.join(self.__dataDir, expectedfilePath)
-        expectedSize = os.stat(expectedfilePath).st_size
-        outfilePath = os.path.join(self.tempDirPath.name, "result.mmd")
-        errfilePath = os.path.join(self.tempDirPath.name, "result.err")
-        with io.open(outfilePath, "w") as outfile, \
-            io.open(errfilePath, "w") as errfile, \
-            MarkdownMergeTests.RedirectStdStreams(
-                stdout=outfile, stderr=errfile):
-            cut = MarkdownMerge(".html")
-            infileNode = Node(infilePath)
-            cut.merge(infileNode, sys.stdout)
         with io.open(outfilePath, "r") as outfile:
             for line in outfile:
                 print(line, end='')
@@ -279,3 +296,62 @@ class MarkdownMergeTests(unittest.TestCase):
         with self.assertRaises(AssertionError):
             self._mergeTest("cycle-i.mmd")
 
+    def testBookTextIsNotSpecial(self):
+        """Test MarkdownMerge.merge().
+
+        A Leanpub index file called 'book.txt' but without the flag
+        indicating that it is special.
+
+        """
+
+        # create the temp directory
+        inputdirPath = os.path.join(self.tempDirPath.name, "Inputs")
+        os.makedirs(inputdirPath)
+
+        # copy the index file to a temp directory
+        absTestfilePath = os.path.join(self.__dataDir, "lp-book.txt")
+        tgtPath = os.path.join(inputdirPath, "book.txt")
+        shutil.copy(absTestfilePath, tgtPath)
+
+        # copy the input files to a temp directory
+        testfilePaths = ([
+            "book-ch1.mmd", "book-ch2.mmd", "book-ch3.mmd",
+            "book-end.mmd", "book-front.mmd", "book-index.mmd",
+            "book-toc.mmd"])
+        for testfilePath in testfilePaths:
+            absTestfilePath = os.path.join(self.__dataDir, testfilePath)
+            shutil.copy(absTestfilePath, inputdirPath)
+
+        # run the test
+        absInfilePath = os.path.join(inputdirPath, "book.txt")
+        self._mergeTest(absInfilePath, "expected-unmerged-book.txt")
+
+    def testBookTextIsSpecial(self):
+        """Test MarkdownMerge.merge().
+
+        A parent includes itself.
+
+        """
+
+        # create the temp directory
+        inputdirPath = os.path.join(self.tempDirPath.name, "Inputs")
+        os.makedirs(inputdirPath)
+
+        # copy the index file to a temp directory
+        absTestfilePath = os.path.join(self.__dataDir, "lp-book.txt")
+        tgtPath = os.path.join(inputdirPath, "book.txt")
+        shutil.copy(absTestfilePath, tgtPath)
+
+        # copy the input files to a temp directory
+        testfilePaths = ([
+            "book-ch1.mmd", "book-ch2.mmd", "book-ch3.mmd",
+            "book-end.mmd", "book-front.mmd", "book-index.mmd",
+            "book-toc.mmd"])
+        for testfilePath in testfilePaths:
+            absTestfilePath = os.path.join(self.__dataDir, testfilePath)
+            shutil.copy(absTestfilePath, inputdirPath)
+
+        # run the test
+        absInfilePath = os.path.join(inputdirPath, "book.txt")
+        self._mergeTest(
+            absInfilePath, "expected-book.mmd", bookTxtIsSpecial=True)
