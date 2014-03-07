@@ -1,5 +1,7 @@
 frontmatter:
 
+# this is front matter comments, 
+# should be ignored
 
 book-front.mmd
 
@@ -8,9 +10,11 @@ book-toc.mmd
 
 mainmatter:
 
-
+# Chapter One!
 book-ch1.mmd
+# Chapter Two!
 book-ch2.mmd
+#Chapter Three!
 book-ch3.mmd
 
 
@@ -21,3 +25,5 @@ book-index.mmd
 
 
 book-end.mmd
+
+#EOF

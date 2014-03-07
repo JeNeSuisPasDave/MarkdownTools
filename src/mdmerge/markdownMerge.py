@@ -469,6 +469,7 @@ class MarkdownMerge:
             for line in idxfile:
                 infilePath = line.strip();
                 if (0 == len(infilePath)
+                or self._isIndexComment(line)
                 or self._isLeanpubIndexMeta(line)):
                     continue
                 absInfilePath = self._getAbsolutePath(
