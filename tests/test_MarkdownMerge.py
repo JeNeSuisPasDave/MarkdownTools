@@ -329,7 +329,8 @@ class MarkdownMergeTests(unittest.TestCase):
     def testBookTextIsSpecial(self):
         """Test MarkdownMerge.merge().
 
-        A parent includes itself.
+        A file with the special name 'book.txt' is recognized
+        as a leanpub index and processed as such.
 
         """
 
@@ -355,3 +356,34 @@ class MarkdownMergeTests(unittest.TestCase):
         absInfilePath = os.path.join(inputdirPath, "book.txt")
         self._mergeTest(
             absInfilePath, "expected-book.mmd", bookTxtIsSpecial=True)
+
+    def testLeanpubIndex(self):
+        """Test MarkdownMerge.merge().
+
+        A file is recognized as a leanpub index because the first line
+        is 'frontmatter:'; it is processed as a leanpub index.
+
+        """
+
+        # create the temp directory
+        inputdirPath = os.path.join(self.tempDirPath.name, "Inputs")
+        os.makedirs(inputdirPath)
+
+        # copy the index file to a temp directory
+        absTestfilePath = os.path.join(self.__dataDir, "lp-index.txt")
+        tgtPath = os.path.join(inputdirPath, "merge-this.txt")
+        shutil.copy(absTestfilePath, tgtPath)
+
+        # copy the input files to a temp directory
+        testfilePaths = ([
+            "book-ch1.mmd", "book-ch2.mmd", "book-ch3.mmd",
+            "book-end.mmd", "book-front.mmd", "book-index.mmd",
+            "book-toc.mmd"])
+        for testfilePath in testfilePaths:
+            absTestfilePath = os.path.join(self.__dataDir, testfilePath)
+            shutil.copy(absTestfilePath, inputdirPath)
+
+        # run the test
+        absInfilePath = os.path.join(inputdirPath, "merge-this.txt")
+        self._mergeTest(
+            absInfilePath, "expected-book.mmd")
