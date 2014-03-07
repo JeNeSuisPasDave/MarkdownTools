@@ -18,7 +18,10 @@ class MarkdownMerge:
         self.__wildcardExtensionIs = wildcardExtensionIs
         self.__bookTxtIsSpecial = bookTxtIsSpecial
 
+        self.__reoIndexComment = re.compile("^#")
         self.__reoLeanpubIndexMarker = re.compile("^frontmatter\:$")
+        self.__reoLeanpubIndexMeta = re.compile(
+            "^(frontmatter\:|mainmatter:|backmatter:)$")
         self.__reoMultiMarkdownIndexMarker = re.compile("^#merge$")
         self.__reoMmdTransclusion = re.compile("^\{\{(.+)\}\}$")
         self.__reoPathAndWildcardExtension = re.compile("^(.+)\.\*$")
@@ -203,6 +206,46 @@ class MarkdownMerge:
         absPath = os.path.join(os.path.dirname(mainDocumentPath), absPath)
         return absPath
 
+    def _isFileAnIndex(self, absFilePath):
+        """Examines the initial lines of a file to determine whether it
+        is an index file.
+
+        Args:
+            absFilePath: the full file path of the file to be examined.
+
+        Returns:
+            True if the file is a mmd_merge or a LeanPub index file.
+
+        """
+
+        if (None == absFilePath
+        or not os.path.exists(absFilePath)):
+            return False
+        with io.open(absFilePath, "r") as idxfile:
+            for line in idxfile:
+                line = line.strip()
+                if (0 == len(line)
+                or self._isIndexComment(line)):
+                    continue # skip blanks and comments
+                if self._isLeanpubIndexMarker(line):
+                    return True
+                break
+        return False
+
+    def _isIndexComment(self, line):
+        """Detect whether line begins with '#'. Such lines are comments
+        when in an index file.
+
+        Returns:
+            True if the line begins with '#'; otherwise, False.
+
+        """
+
+        m = self.__reoIndexComment.match(line)
+        if not m:
+            return False
+        return True
+
     def _isLeanpubIndexMarker(self, line):
         """Detect whether line is 'frontmatter:', indicating the line
         is a marker for leanpub index files.
@@ -213,6 +256,20 @@ class MarkdownMerge:
         """
 
         m = self.__reoLeanpubIndexMarker.match(line)
+        if not m:
+            return False
+        return True
+
+    def _isLeanpubIndexMeta(self, line):
+        """Detect whether line is some LeanPub meta tag. Specifically:
+        'frontmatter:', 'mainmatter:', 'backmatter:'.
+
+        Returns:
+            True if the line is a LeanPub meta tag; otherwise, False.
+
+        """
+
+        m = self.__reoLeanpubIndexMeta.match(line)
         if not m:
             return False
         return True
@@ -410,10 +467,9 @@ class MarkdownMerge:
 
         with io.open(absIdxfilePath, "r") as idxfile:
             for line in idxfile:
-                if None == line:
-                    continue
                 infilePath = line.strip();
-                if 0 == len(infilePath):
+                if (0 == len(infilePath)
+                or self._isLeanpubIndexMeta(line)):
                     continue
                 absInfilePath = self._getAbsolutePath(
                     absIdxfilePath, infilePath)
@@ -443,11 +499,26 @@ class MarkdownMerge:
         return False
 
     def merge(self, infileNode, outfile):
+        """Give the input file (via a Node object) and the output file
+        stream object, process the input file, including other files as
+        specified by the include specification encountered, writing the
+        resulting output lines to the output file stream.
+
+        Args:
+            infileNode: a Node object that represents the input
+                file to be processed.
+            outfile: the output file stream to which the resulting
+                lines will be written.
+
+        """
+
         infilePath = infileNode.filePath()
         absInfilePath = os.path.abspath(infilePath)
         infileName = os.path.basename(absInfilePath)
         if (self.__bookTxtIsSpecial
         and "book.txt".casefold() == infileName.casefold()):
+            self._mergeIndexFile(absInfilePath, infileNode, outfile)
+        elif self._isFileAnIndex(absInfilePath):
             self._mergeIndexFile(absInfilePath, infileNode, outfile)
         else:
             self._mergeSingleFile(
