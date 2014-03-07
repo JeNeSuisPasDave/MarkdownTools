@@ -66,7 +66,7 @@ class MarkdownMergeTests(unittest.TestCase):
         return False;
 
     def _mergeTest(self,
-        infilePath, expectedfilePath=None,
+        infilePath, expectedfilePath=None, expectingStderr=False,
         wildcardExtensionIs=".html", bookTxtIsSpecial=False):
         """Take a single inputfile and produce a merged output file, then
         check the results against a file containing the expected content.
@@ -75,6 +75,8 @@ class MarkdownMergeTests(unittest.TestCase):
             infilePath: the input file path, relative to self.__dataDir
             expectedFilePath: the expected file path, relative to
                 self.__dataDir. Defaults to None.
+            expectingStderr: if True then the stderr stream should have
+                some content.
             wildcardExtensionIs: the extension to substitute if include
                 file extension is a wildcardExtensionIs
             bookTxtIsSpecial: whether to treat 'book.txt' as a Leanpub index
@@ -97,7 +99,10 @@ class MarkdownMergeTests(unittest.TestCase):
             cut = MarkdownMerge(wildcardExtensionIs, bookTxtIsSpecial)
             infileNode = Node(infilePath)
             cut.merge(infileNode, sys.stdout)
-        self.assertEqual(0, os.stat(errfilePath).st_size)
+        if expectingStderr:
+            self.assertGreater(os.stat(errfilePath).st_size, 0)
+        else:
+            self.assertEqual(0, os.stat(errfilePath).st_size)
         if None != expectedfilePath:
             self.assertEqual(expectedSize, os.stat(outfilePath).st_size)
             self.assertTrue(self._areFilesIdentical(
@@ -454,3 +459,36 @@ class MarkdownMergeTests(unittest.TestCase):
         absInfilePath = os.path.join(inputdirPath, "merge-this.txt")
         self._mergeTest(
             absInfilePath, "expected-book.mmd")
+
+
+    def testLeanpubIndexMissingFile(self):
+        """Test MarkdownMerge.merge().
+
+        A leanpub index contains a non-extant file. Show that is
+        the file is ignored but a warning is issued to stderr.
+
+        """
+
+        # create the temp directory
+        inputdirPath = os.path.join(self.tempDirPath.name, "Inputs")
+        os.makedirs(inputdirPath)
+
+        # copy the index file to a temp directory
+        absTestfilePath = os.path.join(self.__dataDir, "lp-book-bad1.txt")
+        tgtPath = os.path.join(inputdirPath, "book.txt")
+        shutil.copy(absTestfilePath, tgtPath)
+
+        # copy the input files to a temp directory
+        testfilePaths = ([
+            "book-ch1.mmd", "book-ch2.mmd", "book-ch3.mmd",
+            "book-end.mmd", "book-front.mmd", "book-index.mmd",
+            "book-toc.mmd"])
+        for testfilePath in testfilePaths:
+            absTestfilePath = os.path.join(self.__dataDir, testfilePath)
+            shutil.copy(absTestfilePath, inputdirPath)
+
+        # run the test
+        absInfilePath = os.path.join(inputdirPath, "book.txt")
+        self._mergeTest(
+            absInfilePath, "expected-book-bad1.mmd",
+            bookTxtIsSpecial=True, expectingStderr=True)

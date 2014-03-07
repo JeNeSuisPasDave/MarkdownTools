@@ -474,6 +474,12 @@ class MarkdownMerge:
                     continue
                 absInfilePath = self._getAbsolutePath(
                     absIdxfilePath, infilePath)
+                if not os.path.exists(absInfilePath):
+                    # ignore non-extant files
+                    sys.stderr.write(
+                        "Warning: file does not exist -- {0}\n".format(
+                            absInfilePath))
+                    continue
                 infileNode = idxfileNode.addChild(absInfilePath)
                 self._mergeSingleFile(
                     absIdxfilePath, absInfilePath, infileNode, outfile)
