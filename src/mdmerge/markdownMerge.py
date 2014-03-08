@@ -96,6 +96,7 @@ class MarkdownMerge:
                     level += 1
                     spaceCount = 0
                     continue
+                continue
             break # stop at first character that is not a space or tab
         return level
 
