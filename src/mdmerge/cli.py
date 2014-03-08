@@ -7,17 +7,12 @@ import os.path
 import sys
 import argparse
 
-"""TODO:
-
-* Make use of Node to ensure no cycles
-* Implement the show version option
-* Parse lines for simple includsion: <<[filepath]
-* Parse lines for fenced block inclusion: <<[highlight hint](code-filepath)
-* Parse lines for simple inclusion, but after Markdown processing: <<{filepath}
-
-"""
-
 class CLI:
+    """Handle the command line interface, invoking MarkdownMerge as
+    needed.
+
+    """
+
     from .node import Node
 
     class RedirectStdStreams:
@@ -264,25 +259,14 @@ class CLI:
                 " invalid output file path")
             self.parser.error(fmts.format(dirpath))
 
-    def _scanFile(self, ifile):
-        """Store input lines into output file. If the input line is an
-        include statement, then insert that files lines into the output
-        file.
-
-        """
-
-        for line in ifile:
-            print(line, file=self.__outfile, end='')
-            print("[DTH] {0}".format(line), end='')
-
     def _showVersion(self):
         """Show the version only.
 
         """
 
-        import mdMerge
+        import mdmerge
 
-        print("mdmerge version {0}".format(mdMerge.__version__),
+        print("mdmerge version {0}".format(mdmerge.__version__),
             file=self.__stdout)
 
     def _stdinIsTTY(self):
@@ -307,6 +291,9 @@ class CLI:
 
         """
 
+        from mdmerge.node import Node
+        from mdmerge.markdownMerge import MarkdownMerge
+
         if self.__abandonCLI:
             return
 
@@ -315,23 +302,24 @@ class CLI:
             return
 
         if self.__useStdout:
-            print("[DTH] *** __outFilepath: STDOUT ***")
             self.__outfile = self.__stdout
         else:
-            print("[DTH] *** __outFilepath: '{0}' ***".format(self.__outFilepath))
             self.__outfile = open(self.__outFilepath, 'w')
 
+        merger = MarkdownMerge(
+            wildcardExtensionIs=self.__wildcardExtensionIs,
+            bookTxtIsSpecial=self.__bookTxtIsSpecial)
+        rootNode = Node()
+        nextNode = None
         for ipath in self.__inputFilepaths:
             if CLI.__STDIN_FILENAME == ipath:
                 ifile = self.__stdin
-                self._scanFile(ifile)
             else:
-                ifile = open(ipath, 'r')
-                self._scanFile(ifile)
-                ifile.close()
-                self.__outfile.close()
-                print("[DTH] Here is the output file")
-                print(open(self.__outFilepath).read())
+                nextNode = rootNode.addChild(ipath)
+                merger.merge(nextNode, self.__outfile)
+
+        if not self.__useStdout:
+            self.__outfile.close()
 
     def parseCommandArgs(self, args):
         """Parse the command line arguments.
@@ -363,3 +351,5 @@ if '__main__' == __name__:
         m.execute()
     except KeyboardInterrupt:
         print("")
+
+# eof
