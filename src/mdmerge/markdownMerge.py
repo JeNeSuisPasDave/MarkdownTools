@@ -12,10 +12,6 @@ from collections import deque
 
 class MarkdownMerge:
 
-    # class attributes
-    #
-    __STDIN_FILENAME = '-'
-
     def __init__(self,
         wildcardExtensionIs=".html",
         bookTxtIsSpecial=False,
@@ -566,7 +562,6 @@ class MarkdownMerge:
                 continue
             outline = self._bumpLevel(level, line.rstrip("\r\n"))
             outfile.write(outline + '\n')
-
 
     def _mergeStdinFile(self,
         infileNode, level, outfile):
