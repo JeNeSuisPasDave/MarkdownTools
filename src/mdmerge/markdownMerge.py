@@ -575,7 +575,7 @@ class MarkdownMerge:
 
         """
 
-        mainDocumentPath = os.path.join(os.getcwd(), "dummy")
+        mainDocumentPath = os.path.join(infileNode.rootPath(), "dummy")
         self._mergeFile(
             sys.stdin, mainDocumentPath, infileNode, level, outfile)
 
@@ -661,7 +661,7 @@ class MarkdownMerge:
 
         """
 
-        mainDocumentPath = os.path.join(os.getcwd(), "dummy")
+        mainDocumentPath = os.path.join(idxfileNode.rootPath(), "dummy")
         self._mergeIndex(sys.stdin, mainDocumentPath, idxfileNode, outfile)
 
     def _shortenLine(self, line):

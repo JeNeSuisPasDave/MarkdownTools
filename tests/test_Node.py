@@ -66,7 +66,7 @@ class NodeTests(unittest.TestCase):
 
         """
 
-        cut = Node()
+        cut = Node("")
         self.assertTrue(cut.isAncestor(None))
 
     def testNodeRoot(self):
@@ -76,7 +76,7 @@ class NodeTests(unittest.TestCase):
 
         """
 
-        cut = Node("book.txt")
+        cut = Node("", "book.txt")
         self.assertFalse(cut.isAncestor(None))
         self.assertTrue(cut.isAncestor("book.txt"))
         self.assertFalse(cut.isAncestor("wat.md"))
@@ -90,7 +90,7 @@ class NodeTests(unittest.TestCase):
 
         """
 
-        cut = Node("root.md")
+        cut = Node("", "root.md")
         aNode = cut.addChild("a.md")
         self.assertFalse(aNode.isAncestor(None))
         self.assertTrue(aNode.isAncestor("root.md"))
@@ -110,7 +110,7 @@ class NodeTests(unittest.TestCase):
 
         """
 
-        cut = Node("root.md")
+        cut = Node("", "root.md")
         aNode = cut.addChild("a.md")
         bNode = aNode.addChild("b.md")
         cNode = aNode.addChild("c.md")
@@ -137,7 +137,7 @@ class NodeTests(unittest.TestCase):
 
         """
 
-        cut = Node("root.md")
+        cut = Node("", "root.md")
         aNode = cut.addChild("a.md")
         bNode = aNode.addChild("b.md")
         cNode = aNode.addChild("c.md")
@@ -145,4 +145,47 @@ class NodeTests(unittest.TestCase):
         with self.assertRaises(AssertionError):
             acbaNode = acbNode.addChild("a.md")
 
+    def testNodeRootPath(self):
+        """Test Node.__init__().
 
+        Create a root node with a filepath and validate the rootPath.
+
+        """
+
+        cut = Node(filePath="/aone/btwo/cthree/book.txt")
+        self.assertFalse(cut.isAncestor(None))
+        self.assertTrue(cut.isAncestor("/aone/btwo/cthree/book.txt"))
+        self.assertFalse(cut.isAncestor("/aone/btwo/cthree/wat.md"))
+        self.assertEqual("/aone/btwo/cthree", cut.rootPath())
+
+    def testEmptyNodeRootPath(self):
+        """Test Node.__init__().
+
+        Create a root node with a filepath and validate the rootPath.
+
+        """
+
+        cut = Node("/aone/btwo/cthree")
+        self.assertTrue(cut.isAncestor(None))
+        self.assertFalse(cut.isAncestor("/aone/btwo/cthree/book.txt"))
+        self.assertFalse(cut.isAncestor("/aone/btwo/cthree/wat.md"))
+        self.assertEqual("/aone/btwo/cthree", cut.rootPath())
+
+    def testNodeOneChildRootPath(self):
+        """Test Node.__init__().
+
+        R
+        |
+        A
+
+        """
+
+        cut = Node(filePath="/aone/btwo/cthree/root.md")
+        aNode = cut.addChild("/aone/btwo/cthree/a.md")
+        self.assertFalse(aNode.isAncestor(None))
+        self.assertTrue(aNode.isAncestor("/aone/btwo/cthree/root.md"))
+        self.assertTrue(aNode.isAncestor("/aone/btwo/cthree/a.md"))
+        self.assertFalse(aNode.isAncestor("/aone/btwo/cthree/wat.md"))
+        self.assertEqual(cut.rootPath(), aNode.rootPath())
+
+# eof

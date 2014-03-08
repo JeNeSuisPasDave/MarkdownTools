@@ -28,19 +28,23 @@ class MarkdownMergeTests(unittest.TestCase):
 
         """
 
-        def __init__(self, stdout=None, stderr=None):
+        def __init__(self, stdin=None, stdout=None, stderr=None):
+            self._stdin = stdin or sys.stdin
             self._stdout = stdout or sys.stdout
             self._stderr = stderr or sys.stderr
 
         def __enter__(self):
-            self.old_stdout, self.old_stderr = sys.stdout, sys.stderr
+            self.old_stdin, self.old_stdout, self.old_stderr = \
+                sys.stdin, sys.stdout, sys.stderr
             self.old_stdout.flush()
             self.old_stderr.flush()
-            sys.stdout, sys.stderr = self._stdout, self._stderr
+            sys.stdin, sys.stdout, sys.stderr = \
+                self._stdin, self._stdout, self._stderr
 
         def __exit__(self, exc_type, exc_value, traceback):
             self._stdout.flush()
             self._stderr.flush()
+            sys.stdin = self.old_stdin
             sys.stdout = self.old_stdout
             sys.stderr = self.old_stderr
 
@@ -67,7 +71,8 @@ class MarkdownMergeTests(unittest.TestCase):
 
     def _mergeTest(self,
         infilePath, expectedfilePath=None, expectingStderr=False,
-        wildcardExtensionIs=".html", bookTxtIsSpecial=False):
+        wildcardExtensionIs=".html", bookTxtIsSpecial=False,
+        infileAsStdin=False, stdinIsBook=False):
         """Take a single inputfile and produce a merged output file, then
         check the results against a file containing the expected content.
 
@@ -81,6 +86,8 @@ class MarkdownMergeTests(unittest.TestCase):
                 file extension is a wildcardExtensionIs
             bookTxtIsSpecial: whether to treat 'book.txt' as a Leanpub index
                 file.
+            infileAsStdin: the CUT should access the infile via STDIN
+            stdinIsBook: whether STDIN is treated as an index file
 
         """
 
@@ -92,13 +99,25 @@ class MarkdownMergeTests(unittest.TestCase):
             expectedSize = os.stat(expectedfilePath).st_size
         outfilePath = os.path.join(self.tempDirPath.name, "result.mmd")
         errfilePath = os.path.join(self.tempDirPath.name, "result.err")
-        with io.open(outfilePath, "w") as outfile, \
-            io.open(errfilePath, "w") as errfile, \
-            MarkdownMergeTests.RedirectStdStreams(
-                stdout=outfile, stderr=errfile):
-            cut = MarkdownMerge(wildcardExtensionIs, bookTxtIsSpecial)
-            infileNode = Node(infilePath)
-            cut.merge(infileNode, sys.stdout)
+        if infileAsStdin:
+            with io.open(outfilePath, "w") as outfile, \
+                io.open(errfilePath, "w") as errfile, \
+                io.open(infilePath, "r") as infile, \
+                MarkdownMergeTests.RedirectStdStreams(
+                    stdin=infile, stdout=outfile, stderr=errfile):
+                cut = MarkdownMerge(
+                    wildcardExtensionIs, bookTxtIsSpecial, stdinIsBook)
+                infileNode = Node(os.path.dirname(infilePath))
+                cut.merge(infileNode, sys.stdout)
+        else:
+            with io.open(outfilePath, "w") as outfile, \
+                io.open(errfilePath, "w") as errfile, \
+                MarkdownMergeTests.RedirectStdStreams(
+                    stdout=outfile, stderr=errfile):
+                cut = MarkdownMerge(
+                    wildcardExtensionIs, bookTxtIsSpecial, stdinIsBook)
+                infileNode = Node(filePath=infilePath)
+                cut.merge(infileNode, sys.stdout)
         if expectingStderr:
             self.assertGreater(os.stat(errfilePath).st_size, 0)
         else:
@@ -109,19 +128,24 @@ class MarkdownMergeTests(unittest.TestCase):
                 expectedfilePath, outfilePath))
 
     def _mergeTry(self,
-        infilePath, expectedfilePath=None,
-        wildcardExtensionIs=".html", bookTxtIsSpecial=False):
+        infilePath, expectedfilePath=None, expectingStderr=False,
+        wildcardExtensionIs=".html", bookTxtIsSpecial=False,
+        infileAsStdin=False, stdinIsBook=False):
         """Take a single inputfile and produce a merged output file, then
         dump the output to stdout.
 
         Args:
             infilePath: the input file path, relative to self.__dataDir
             expectedFilePath: the expected file path, relative to
-                self.__dataDir
+                self.__dataDir. Defaults to None.
+            expectingStderr: if True then the stderr stream should have
+                some content.
             wildcardExtensionIs: the extension to substitute if include
                 file extension is a wildcardExtensionIs
             bookTxtIsSpecial: whether to treat 'book.txt' as a Leanpub index
                 file.
+            infileAsStdin: the CUT should access the infile via STDIN
+            stdinIsBook: whether STDIN is treated as an index file
 
         """
 
@@ -131,13 +155,26 @@ class MarkdownMergeTests(unittest.TestCase):
             expectedSize = os.stat(expectedfilePath).st_size
         outfilePath = os.path.join(self.tempDirPath.name, "result.mmd")
         errfilePath = os.path.join(self.tempDirPath.name, "result.err")
-        with io.open(outfilePath, "w") as outfile, \
-            io.open(errfilePath, "w") as errfile, \
-            MarkdownMergeTests.RedirectStdStreams(
-                stdout=outfile, stderr=errfile):
-            cut = MarkdownMerge(wildcardExtensionIs, bookTxtIsSpecial)
-            infileNode = Node(infilePath)
-            cut.merge(infileNode, sys.stdout)
+        if infileAsStdin:
+            with io.open(outfilePath, "w") as outfile, \
+                io.open(errfilePath, "w") as errfile, \
+                io.open(infilePath, "r") as infile, \
+                MarkdownMergeTests.RedirectStdStreams(
+                    stdin=infile, stdout=outfile, stderr=errfile):
+                cut = MarkdownMerge(
+                    wildcardExtensionIs, bookTxtIsSpecial, stdinIsBook)
+                infileNode = Node(
+                    os.path.dirname(os.path.abspath(infilePath)))
+                cut.merge(infileNode, sys.stdout)
+        else:
+            with io.open(outfilePath, "w") as outfile, \
+                io.open(errfilePath, "w") as errfile, \
+                MarkdownMergeTests.RedirectStdStreams(
+                    stdout=outfile, stderr=errfile):
+                cut = MarkdownMerge(
+                    wildcardExtensionIs, bookTxtIsSpecial, stdinIsBook)
+                infileNode = Node(filePath=infilePath)
+                cut.merge(infileNode, sys.stdout)
 
         with io.open(outfilePath, "r") as outfile:
             for line in outfile:
@@ -205,7 +242,7 @@ class MarkdownMergeTests(unittest.TestCase):
             MarkdownMergeTests.RedirectStdStreams(
                 stdout=outfile, stderr=errfile):
             cut = MarkdownMerge(".html")
-            infileNode = Node(infilePath)
+            infileNode = Node(filePath=infilePath)
             cut.merge(infileNode, sys.stdout)
         self.assertEqual(0, os.stat(outfilePath).st_size)
         self.assertEqual(0, os.stat(errfilePath).st_size)
@@ -722,5 +759,58 @@ class MarkdownMergeTests(unittest.TestCase):
         self._mergeTest(
             absInfilePath, "expected-book-indentation.mmd")
 
+    def testStdinNoIncludes(self):
+        """Test MarkdownMerge.merge().
+
+        stdin with no includes should produce an identical file.
+
+        """
+
+        self._mergeTest("aa.mmd", "aa.mmd", infileAsStdin=True)
+
+    def testStdinSingleIncludeFencedTransclusion(self):
+        """Test MarkdownMerge.merge().
+
+        A file with one MMD transclusion inside an unnamed code fence.
+
+        """
+
+        self._mergeTest("t-c.mmd", "expected-t-c.mmd", infileAsStdin=True)
+
+
+    def testStdinMmdIndexIndentedWithInexactSpaces(self):
+        """Test MarkdownMerge.merge().
+
+        STDIN is treated as in index because of the '--book' argument.
+        The file contains indentation, so the merged file has headings levels
+        that match the indentation. The indentation is spaces, and not in
+        even multiples of 4 (four).
+
+        """
+
+        # create the temp directory
+        inputdirPath = os.path.join(self.tempDirPath.name, "Inputs")
+        os.makedirs(inputdirPath)
+
+        # copy the index file to a temp directory
+        absTestfilePath = os.path.join(
+            self.__dataDir, "mmd-index-indentation-inexact-spaces.txt")
+        tgtPath = os.path.join(inputdirPath, "merge-this.txt")
+        shutil.copy(absTestfilePath, tgtPath)
+
+        # copy the input files to a temp directory
+        testfilePaths = ([
+            "book-ch1.mmd", "book-ch2.mmd", "book-ch3.mmd",
+            "book-end.mmd", "book-front.mmd", "book-index.mmd",
+            "book-toc.mmd"])
+        for testfilePath in testfilePaths:
+            absTestfilePath = os.path.join(self.__dataDir, testfilePath)
+            shutil.copy(absTestfilePath, inputdirPath)
+
+        # run the test
+        absInfilePath = os.path.join(inputdirPath, "merge-this.txt")
+        self._mergeTest(
+            absInfilePath, "expected-book-indentation.mmd",
+            infileAsStdin=True, stdinIsBook=True)
 
 # eof

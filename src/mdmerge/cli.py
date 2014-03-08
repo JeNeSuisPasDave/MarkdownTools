@@ -70,7 +70,6 @@ class CLI:
         self.__abandonCLI = False
         self.__useStdin = False
         self.__posStdin = 0
-        self.__root = CLI.Node()
         self.__useStdout = True
         self.__outFilepath = None
         self.__outfile = None
@@ -317,12 +316,13 @@ class CLI:
             wildcardExtensionIs=self.__wildcardExtensionIs,
             bookTxtIsSpecial=self.__bookTxtIsSpecial,
             stdinIsBook=self.__stdinIsBook)
-        rootNode = Node()
-        nextNode = rootNode
         for ipath in self.__inputFilepaths:
-            if not CLI.__STDIN_FILENAME == ipath:
-                nextNode = rootNode.addChild(ipath)
-            merger.merge(nextNode, self.__outfile)
+            infileNode = None
+            if CLI.__STDIN_FILENAME == ipath:
+                infileNode = Node(os.getcwd())
+            else:
+                infileNode = Node(filePath=os.path.abspath(ipath))
+            merger.merge(infileNode, self.__outfile)
 
         if not self.__useStdout:
             self.__outfile.close()
