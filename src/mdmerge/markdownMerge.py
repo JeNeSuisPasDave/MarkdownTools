@@ -12,6 +12,10 @@ from collections import deque
 
 class MarkdownMerge:
 
+    # class attributes
+    #
+    __STDIN_FILENAME = '-'
+
     def __init__(self,
         wildcardExtensionIs=".html",
         bookTxtIsSpecial=False):
@@ -538,6 +542,46 @@ class MarkdownMerge:
             if 0 != len(self.buf):
                 yield self.buf.popleft()
 
+    def _mergeFile(self,
+        infile, mainDocumentPath, infileNode, level, outfile):
+        """Add the merged lines of a single top-level file to the output.
+
+        Args:
+            infile: the input file stream
+            mainDocumentPath: the absolute file path of the main document;
+                used to determine the location of relative file paths found
+                in include specifications.
+            infileNode: the node representing the input file to process.
+            level: the heading level to add to the headings found in the
+                input file.
+            outfile: the open output file in which to write the merged lines.
+
+        """
+
+        for line in self._mergedLines(
+                mainDocumentPath, infileNode, infile, False, False):
+            if None == line:
+                continue
+            outline = self._bumpLevel(level, line.rstrip("\r\n"))
+            outfile.write(outline + '\n')
+
+
+    def _mergeStdinFile(self,
+        infileNode, level, outfile):
+        """Add the merged lines from stdin to the output.
+
+        Args:
+            infileNode: the node representing stdin as the input file.
+            level: the heading level to add to the headings found in the
+                input file.
+            outfile: the open output file in which to write the merged lines.
+
+        """
+
+        mainDocumentPath = os.path.join(os.getcwd(), "dummy")
+        self._mergeFile(
+            sys.stdin, mainDocumentPath, infileNode, level, outfile)
+
     def _mergeSingleFile(self,
         mainDocumentPath, absInfilePath, infileNode, level, outfile):
         """Add the merged lines of a single top-level file to the output.
@@ -555,12 +599,45 @@ class MarkdownMerge:
         """
 
         with io.open(absInfilePath, "r") as infile:
-            for line in self._mergedLines(
-                    mainDocumentPath, infileNode, infile, False, False):
-                if None == line:
-                    continue
-                outline = self._bumpLevel(level, line.rstrip("\r\n"))
-                outfile.write(outline + '\n')
+            self._mergeFile(
+                infile, mainDocumentPath, infileNode, level, outfile)
+
+    def _mergeIndex(self, idxfile, mainDocumentPath, idxfileNode, outfile):
+        """Treat each line of the index file as an input file. Process
+        each input file to add the merged result to the output file.
+
+        Args:
+            idxfile: the index file stream to process.
+            mainDocumentPath: the absolute file path of the main document;
+                used to determine the location of relative file paths found
+                in include specifications.
+            idxfileNode: the node representing the index file to process.
+            outfile: the open output file in which to write the merged lines.
+
+        """
+
+        firstTime = True
+        for line in idxfile:
+            infilePath = line.strip();
+            if (0 == len(infilePath)
+            or self._isIndexComment(line)
+            or self._isLeanpubIndexMeta(line)):
+                continue
+            absInfilePath = self._getAbsolutePath(
+                mainDocumentPath, infilePath)
+            if not os.path.exists(absInfilePath):
+                # ignore non-extant files
+                sys.stderr.write(
+                    "Warning: file does not exist -- {0}\n".format(
+                        absInfilePath))
+                continue
+            infileNode = idxfileNode.addChild(absInfilePath)
+            if not firstTime:
+                outfile.write("\n") # insert blank line between files
+            firstTime = False
+            level = self._countIndentation(line)
+            self._mergeSingleFile(
+                mainDocumentPath, absInfilePath, infileNode, level, outfile)
 
     def _mergeIndexFile(self, absIdxfilePath, idxfileNode, outfile):
         """Treat each line of the index file as an input file. Process
@@ -650,16 +727,18 @@ class MarkdownMerge:
         """
 
         infilePath = infileNode.filePath()
-        absInfilePath = os.path.abspath(infilePath)
-        infileName = os.path.basename(absInfilePath)
-        if (self.__bookTxtIsSpecial
-        and "book.txt".casefold() == infileName.casefold()):
-            self._mergeIndexFile(absInfilePath, infileNode, outfile)
-        elif self._isFileAnIndex(absInfilePath):
-            self._mergeIndexFile(absInfilePath, infileNode, outfile)
+        if None == infilePath:
+            self._mergeStdinFile(infileNode, 0, outfile)
         else:
-            self._mergeSingleFile(
-                absInfilePath, absInfilePath, infileNode, 0, outfile)
-
+            absInfilePath = os.path.abspath(infilePath)
+            infileName = os.path.basename(absInfilePath)
+            if (self.__bookTxtIsSpecial
+            and "book.txt".casefold() == infileName.casefold()):
+                self._mergeIndexFile(absInfilePath, infileNode, outfile)
+            elif self._isFileAnIndex(absInfilePath):
+                self._mergeIndexFile(absInfilePath, infileNode, outfile)
+            else:
+                self._mergeSingleFile(
+                    absInfilePath, absInfilePath, infileNode, 0, outfile)
 
 # eof

@@ -310,13 +310,11 @@ class CLI:
             wildcardExtensionIs=self.__wildcardExtensionIs,
             bookTxtIsSpecial=self.__bookTxtIsSpecial)
         rootNode = Node()
-        nextNode = None
+        nextNode = rootNode
         for ipath in self.__inputFilepaths:
-            if CLI.__STDIN_FILENAME == ipath:
-                ifile = self.__stdin
-            else:
+            if not CLI.__STDIN_FILENAME == ipath:
                 nextNode = rootNode.addChild(ipath)
-                merger.merge(nextNode, self.__outfile)
+            merger.merge(nextNode, self.__outfile)
 
         if not self.__useStdout:
             self.__outfile.close()
