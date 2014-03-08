@@ -5,8 +5,6 @@ Title: Specifications
 ## issues
 
 * error handling should be configurable ... output html error page, output system exit code, fail silently, et cetera.
-* Should index merging put blank line between files? [answer: yes]
-* what does Marked 2 do? like with a leading '#merge' vs '# merge'? [answer: both are valid] does it insert blank lines between files? [answer: yes]
 
 ## filepaths
 
@@ -23,12 +21,12 @@ Unless otherwise specified, all file path are specified as:
 If the first line of the file is `frontmatter:` then the file is recognized as a LeanPub index file. The processing rules for __LeanPub index files__ are:
 
 1. The remaining lines are treated as filepaths of files to be merged together.
-2. Blank lines are ignored
-3. Lines beginning with a # are ignored
-4. Lines consisting of `frontmatter:`, `mainmatter:`, and `backmatter:` are ignored.
-5. Index files can be nested. Nested files can be just markdown, markdown with include declarations, and index files (both LeanPub and mmd_merge style).
-6. Lines that specify invalid file syntax or specify files that don't exist will be ignored, except that a warning message will be written to stderr.
-7. Leading whitespace is ignored
+1. Blank lines are ignored
+1. Lines beginning with a # are ignored
+1. Lines consisting of `frontmatter:`, `mainmatter:`, and `backmatter:` are ignored.
+1. Lines that specify invalid file syntax or specify files that don't exist will be ignored, except that a warning message will be written to stderr.
+1. Leading whitespace is ignored
+2. A blank line is inserted between merged files
 
 From the command line, the flag `--leanpub` will signal that any file called `book.txt` will be treated as a LeanPub index file.
 
@@ -37,12 +35,12 @@ From the command line, the flag `--leanpub` will signal that any file called `bo
 If the first line of the file is `#merge` then the file is recognized a mmd_merge index file. The processing rules for __mmd_merge index files__ are:
 
 1. The remaining lines are treated as filepaths of files to be merged together.
-2. Blank lines are ignored
-3. Lines beginning with a # are ignored
-4. Lines consisting of `frontmatter:`, `mainmatter:`, and `backmatter:` are ignored.
-5. Index files can be nested. Nested files can be just markdown, markdown with include declarations, and index files (both LeanPub and mmd_merge style).
-6. Lines that specify invalid file syntax or specify files that don't exist will be ignored, except that a warning message will be written to stderr.
-7. Leading whitespace is significant in that each tab or every 4 spaces is treated as an increase in header level (so a single tab indent would change convert an H1 to an H2; a double tab indent would convert an H1 to an H3).
+1. Blank lines are ignored
+1. Lines beginning with a # are ignored
+1. Lines consisting of `frontmatter:`, `mainmatter:`, and `backmatter:` are ignored.
+1. Lines that specify invalid file syntax or specify files that don't exist will be ignored, except that a warning message will be written to stderr.
+1. Leading whitespace is significant in that each tab or every 4 spaces is treated as an increase in header level (so a single tab indent would change convert an H1 to an H2; a double tab indent would convert an H1 to an H3).
+2. A blank line is inserted between merged files
     
     From the insource documentation of the mmd_merge utility:
 
