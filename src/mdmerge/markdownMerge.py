@@ -18,9 +18,11 @@ class MarkdownMerge:
 
     def __init__(self,
         wildcardExtensionIs=".html",
-        bookTxtIsSpecial=False):
+        bookTxtIsSpecial=False,
+        stdinIsBook=False):
         self.__wildcardExtensionIs = wildcardExtensionIs
         self.__bookTxtIsSpecial = bookTxtIsSpecial
+        self.__stdinIsBook = stdinIsBook
 
         self.__reoMarkdownHeading = re.compile("^(#+)\s")
         self.__reoIndexComment = re.compile("^#")
@@ -650,29 +652,22 @@ class MarkdownMerge:
 
         """
 
-        firstTime = True
         with io.open(absIdxfilePath, "r") as idxfile:
-            for line in idxfile:
-                infilePath = line.strip();
-                if (0 == len(infilePath)
-                or self._isIndexComment(line)
-                or self._isLeanpubIndexMeta(line)):
-                    continue
-                absInfilePath = self._getAbsolutePath(
-                    absIdxfilePath, infilePath)
-                if not os.path.exists(absInfilePath):
-                    # ignore non-extant files
-                    sys.stderr.write(
-                        "Warning: file does not exist -- {0}\n".format(
-                            absInfilePath))
-                    continue
-                infileNode = idxfileNode.addChild(absInfilePath)
-                if not firstTime:
-                    outfile.write("\n") # insert blank line between files
-                firstTime = False
-                level = self._countIndentation(line)
-                self._mergeSingleFile(
-                    absIdxfilePath, absInfilePath, infileNode, level, outfile)
+            self._mergeIndex(idxfile, absIdxfilePath, idxfileNode, outfile)
+
+    def _mergeIndexStdin(self, idxfileNode, outfile):
+        """Treat each line of the index file as an input file. Process
+        each input file to add the merged result to the output file.
+
+        Args:
+            absIdxfilePath: the full filename of the index file to process.
+            idxfileNode: the node representing the index file to process.
+            outfile: the open output file in which to write the merged lines.
+
+        """
+
+        mainDocumentPath = os.path.join(os.getcwd(), "dummy")
+        self._mergeIndex(sys.stdin, mainDocumentPath, idxfileNode, outfile)
 
     def _shortenLine(self, line):
         """Shorten a long line to something less than 60 characters; append
@@ -728,7 +723,10 @@ class MarkdownMerge:
 
         infilePath = infileNode.filePath()
         if None == infilePath:
-            self._mergeStdinFile(infileNode, 0, outfile)
+            if self.__stdinIsBook:
+                self._mergeIndexStdin(infileNode, outfile)
+            else:
+                self._mergeStdinFile(infileNode, 0, outfile)
         else:
             absInfilePath = os.path.abspath(infilePath)
             infileName = os.path.basename(absInfilePath)

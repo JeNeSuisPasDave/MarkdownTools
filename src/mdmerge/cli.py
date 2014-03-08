@@ -77,6 +77,7 @@ class CLI:
         self.__inputFilepaths = []
         self.__bookTxtIsSpecial = False
         self.__wildcardExtensionIs = None
+        self.__stdinIsBook = False
 
         # main command
         #
@@ -93,13 +94,17 @@ class CLI:
         self.parser.add_argument(
             "--leanpub", dest='leanPub', action='store_true',
             default=False,
-            help="Any file called 'book.txt' will be a LeanPub index")
+            help="Any file called 'book.txt' will be treated as an index file")
+        self.parser.add_argument(
+            "--book", dest='forceBook', action='store_true',
+            default=False,
+            help="Treat STDIN as an index file")
         self.parser.add_argument(
             '-o', '--outfile', dest='outFile', action='store',
             help="Specify the path to the output file")
         self.parser.add_argument(
             dest='inFiles', metavar='inFile', nargs='*', type=str,
-            help="One or more files to merge, or just '-' for stdin")
+            help="One or more files to merge, or just '-' for STDIN")
 
     def _isSequenceNotString(self, obj):
         return (
@@ -164,6 +169,8 @@ class CLI:
         self._validateExportTarget(self.args.exportTarget)
         if self.args.leanPub:
             self.__bookTxtIsSpecial = True
+        if self.args.forceBook:
+            self.__stdinIsBook = True
 
     def _validateExportTarget(self, exportTarget):
         if exportTarget is not None:
@@ -308,7 +315,8 @@ class CLI:
 
         merger = MarkdownMerge(
             wildcardExtensionIs=self.__wildcardExtensionIs,
-            bookTxtIsSpecial=self.__bookTxtIsSpecial)
+            bookTxtIsSpecial=self.__bookTxtIsSpecial,
+            stdinIsBook=self.__stdinIsBook)
         rootNode = Node()
         nextNode = rootNode
         for ipath in self.__inputFilepaths:
