@@ -362,6 +362,38 @@ class MarkdownMergeTests(unittest.TestCase):
         self._mergeTest(
             absInfilePath, "expected-book.mmd", bookTxtIsSpecial=True)
 
+    def testBookTextMissingFile(self):
+        """Test MarkdownMerge.merge().
+
+        A leanpub index contains a non-extant file. Show that is
+        the file is ignored but a warning is issued to stderr.
+
+        """
+
+        # create the temp directory
+        inputdirPath = os.path.join(self.tempDirPath.name, "Inputs")
+        os.makedirs(inputdirPath)
+
+        # copy the index file to a temp directory
+        absTestfilePath = os.path.join(self.__dataDir, "lp-book-bad1.txt")
+        tgtPath = os.path.join(inputdirPath, "book.txt")
+        shutil.copy(absTestfilePath, tgtPath)
+
+        # copy the input files to a temp directory
+        testfilePaths = ([
+            "book-ch1.mmd", "book-ch2.mmd", "book-ch3.mmd",
+            "book-end.mmd", "book-front.mmd", "book-index.mmd",
+            "book-toc.mmd"])
+        for testfilePath in testfilePaths:
+            absTestfilePath = os.path.join(self.__dataDir, testfilePath)
+            shutil.copy(absTestfilePath, inputdirPath)
+
+        # run the test
+        absInfilePath = os.path.join(inputdirPath, "book.txt")
+        self._mergeTest(
+            absInfilePath, "expected-book-bad1.mmd",
+            bookTxtIsSpecial=True, expectingStderr=True)
+
     def testLeanpubIndex(self):
         """Test MarkdownMerge.merge().
 
@@ -426,7 +458,6 @@ class MarkdownMergeTests(unittest.TestCase):
         self._mergeTest(
             absInfilePath, "expected-book.mmd")
 
-
     def testLeanpubIndexWithLeadingBlanksAndComments(self):
         """Test MarkdownMerge.merge().
 
@@ -460,7 +491,6 @@ class MarkdownMergeTests(unittest.TestCase):
         self._mergeTest(
             absInfilePath, "expected-book.mmd")
 
-
     def testLeanpubIndexMissingFile(self):
         """Test MarkdownMerge.merge().
 
@@ -474,8 +504,8 @@ class MarkdownMergeTests(unittest.TestCase):
         os.makedirs(inputdirPath)
 
         # copy the index file to a temp directory
-        absTestfilePath = os.path.join(self.__dataDir, "lp-book-bad1.txt")
-        tgtPath = os.path.join(inputdirPath, "book.txt")
+        absTestfilePath = os.path.join(self.__dataDir, "lp-index-bad1.txt")
+        tgtPath = os.path.join(inputdirPath, "merge-this.txt")
         shutil.copy(absTestfilePath, tgtPath)
 
         # copy the input files to a temp directory
@@ -488,7 +518,140 @@ class MarkdownMergeTests(unittest.TestCase):
             shutil.copy(absTestfilePath, inputdirPath)
 
         # run the test
-        absInfilePath = os.path.join(inputdirPath, "book.txt")
+        absInfilePath = os.path.join(inputdirPath, "merge-this.txt")
         self._mergeTest(
             absInfilePath, "expected-book-bad1.mmd",
-            bookTxtIsSpecial=True, expectingStderr=True)
+            expectingStderr=True)
+
+    def testMmdIndex(self):
+        """Test MarkdownMerge.merge().
+
+        A file is recognized as a multimarkdown index because the first line
+        is '#merge:'; it is processed as a mmd_merge index.
+
+        """
+
+        # create the temp directory
+        inputdirPath = os.path.join(self.tempDirPath.name, "Inputs")
+        os.makedirs(inputdirPath)
+
+        # copy the index file to a temp directory
+        absTestfilePath = os.path.join(self.__dataDir, "mmd-index.txt")
+        tgtPath = os.path.join(inputdirPath, "merge-this.txt")
+        shutil.copy(absTestfilePath, tgtPath)
+
+        # copy the input files to a temp directory
+        testfilePaths = ([
+            "book-ch1.mmd", "book-ch2.mmd", "book-ch3.mmd",
+            "book-end.mmd", "book-front.mmd", "book-index.mmd",
+            "book-toc.mmd"])
+        for testfilePath in testfilePaths:
+            absTestfilePath = os.path.join(self.__dataDir, testfilePath)
+            shutil.copy(absTestfilePath, inputdirPath)
+
+        # run the test
+        absInfilePath = os.path.join(inputdirPath, "merge-this.txt")
+        self._mergeTest(
+            absInfilePath, "expected-book.mmd")
+
+    def testMmdIndexVariation(self):
+        """Test MarkdownMerge.merge().
+
+        A file is recognized as a multimarkdown index because the first line
+        is '#  merge:'; it is processed as a mmd_merge index.
+
+        """
+
+        # create the temp directory
+        inputdirPath = os.path.join(self.tempDirPath.name, "Inputs")
+        os.makedirs(inputdirPath)
+
+        # copy the index file to a temp directory
+        absTestfilePath = os.path.join(
+            self.__dataDir, "mmd-index-variation.txt")
+        tgtPath = os.path.join(inputdirPath, "merge-this.txt")
+        shutil.copy(absTestfilePath, tgtPath)
+
+        # copy the input files to a temp directory
+        testfilePaths = ([
+            "book-ch1.mmd", "book-ch2.mmd", "book-ch3.mmd",
+            "book-end.mmd", "book-front.mmd", "book-index.mmd",
+            "book-toc.mmd"])
+        for testfilePath in testfilePaths:
+            absTestfilePath = os.path.join(self.__dataDir, testfilePath)
+            shutil.copy(absTestfilePath, inputdirPath)
+
+        # run the test
+        absInfilePath = os.path.join(inputdirPath, "merge-this.txt")
+        self._mergeTest(
+            absInfilePath, "expected-book.mmd")
+
+    def testMmdIndexWithBlanksAndComments(self):
+        """Test MarkdownMerge.merge().
+
+        A file is recognized as a multimarkdown index because of a leading
+        '#merge' comment; but the file contains leanpub meta tags and
+        other comments and blanks. It is processed as a mmd_merge index.
+
+        """
+
+        # create the temp directory
+        inputdirPath = os.path.join(self.tempDirPath.name, "Inputs")
+        os.makedirs(inputdirPath)
+
+        # copy the index file to a temp directory
+        absTestfilePath = os.path.join(
+            self.__dataDir, "mmd-index-with-comments-and-blanks.txt")
+        tgtPath = os.path.join(inputdirPath, "merge-this.txt")
+        shutil.copy(absTestfilePath, tgtPath)
+
+        # copy the input files to a temp directory
+        testfilePaths = ([
+            "book-ch1.mmd", "book-ch2.mmd", "book-ch3.mmd",
+            "book-end.mmd", "book-front.mmd", "book-index.mmd",
+            "book-toc.mmd"])
+        for testfilePath in testfilePaths:
+            absTestfilePath = os.path.join(self.__dataDir, testfilePath)
+            shutil.copy(absTestfilePath, inputdirPath)
+
+        # run the test
+        absInfilePath = os.path.join(inputdirPath, "merge-this.txt")
+        self._mergeTest(
+            absInfilePath, "expected-book.mmd")
+
+    def testMmdIndexIndentedWithTabs(self):
+        """Test MarkdownMerge.merge().
+
+        A file is recognized as a multimarkdown index because the first line
+        is '#merge:'; it is processed as a mmd_merge index. The file contains
+        indentation, so the merged file has headings levels that match
+        the indentation.
+
+        """
+
+        # create the temp directory
+        inputdirPath = os.path.join(self.tempDirPath.name, "Inputs")
+        os.makedirs(inputdirPath)
+
+        # copy the index file to a temp directory
+        absTestfilePath = os.path.join(
+            self.__dataDir, "mmd-index-indentation-tabs.txt")
+        tgtPath = os.path.join(inputdirPath, "merge-this.txt")
+        shutil.copy(absTestfilePath, tgtPath)
+
+        # copy the input files to a temp directory
+        testfilePaths = ([
+            "book-ch1.mmd", "book-ch2.mmd", "book-ch3.mmd",
+            "book-end.mmd", "book-front.mmd", "book-index.mmd",
+            "book-toc.mmd"])
+        for testfilePath in testfilePaths:
+            absTestfilePath = os.path.join(self.__dataDir, testfilePath)
+            shutil.copy(absTestfilePath, inputdirPath)
+
+        # run the test
+        absInfilePath = os.path.join(inputdirPath, "merge-this.txt")
+        self._mergeTest(
+            absInfilePath, "expected-book-indentation.mmd")
+
+
+# eof

@@ -18,11 +18,12 @@ class MarkdownMerge:
         self.__wildcardExtensionIs = wildcardExtensionIs
         self.__bookTxtIsSpecial = bookTxtIsSpecial
 
+        self.__reoMarkdownHeading = re.compile("^(#+)\s")
         self.__reoIndexComment = re.compile("^#")
         self.__reoLeanpubIndexMarker = re.compile("^frontmatter\:$")
         self.__reoLeanpubIndexMeta = re.compile(
             "^(frontmatter\:|mainmatter:|backmatter:)$")
-        self.__reoMultiMarkdownIndexMarker = re.compile("^#merge$")
+        self.__reoMultiMarkdownIndexMarker = re.compile("^#\s*merge$")
         self.__reoMmdTransclusion = re.compile("^\{\{(.+)\}\}$")
         self.__reoPathAndWildcardExtension = re.compile("^(.+)\.\*$")
         self.__reoMarkedInclude = re.compile("^<<\[(.+)\]$")
@@ -31,6 +32,72 @@ class MarkdownMerge:
         self.__reoCodeFence = re.compile("^\~\~\~[a-zA-Z0-9]+$")
         self.__reoFence = re.compile("^\~\~\~$")
         self.buf = deque()
+
+    def _bumpLevel(self, level, line):
+        """Increase the heading level of the line by the integer level value.
+        Lines that are not headings are unaffected. If level is zero, no
+        change will be made.
+
+        A warning will be issued if the total header level will exceed 6
+        (because html only specifies h1-h6).
+
+        Args:
+            level: the number of heading levels to add to a heading line.
+            line: the line to be processed.
+
+        Returns:
+            The adjusted line.
+
+        """
+
+        if 0 >= level:
+            return line
+        if not self._isHeading(line):
+            return line
+
+        # produce warning if the heading level is too deep
+        #
+        currentLevel = self._getHeadingLevel(line)
+        if 6 < (currentLevel + level):
+            sys.stderr.write(
+                "Warning: Heading level is increased beyond 6 for line:\n")
+            sys.stderr.write(self._shortenLine(line) + "\n")
+
+        # adjust the heading level
+        #
+        prefix = '#' * level
+        result = prefix + line
+        return result
+
+    def _countIndentation(self, line):
+        """Counts the number of positions that a merge index line is
+        indented. A 'position' is one tab or 4 space characters. If
+        spaces are used, extra spaces are ignore (i.e. a leading 4 spaces
+        is equivalent to a leading 5, 6, or 7 spaces).
+
+        Args:
+            line: the merge index line to examine.
+
+        Returns:
+            The indentation level as an integer number of indent positions.
+
+        """
+
+        level = 0
+        spaceCount = 0
+        for i in range(len(line)):
+            if '\t' == line[i]:
+                level += 1
+                spaceCount = 0
+                continue
+            if ' ' == line[i]:
+                spaceCount += 1;
+                if 4 == spaceCount:
+                    level += 1
+                    spaceCount = 0
+                    continue
+            break # stop at first character that is not a space or tab
+        return level
 
     def _findIncludePath(self, lines):
         """Detect wheter line is an include specification.
@@ -206,6 +273,24 @@ class MarkdownMerge:
         absPath = os.path.join(os.path.dirname(mainDocumentPath), absPath)
         return absPath
 
+    def _getHeadingLevel(self, line):
+        """Determines the heading level of a markdown heading line. Counts
+        the number of consecutive '#' at the start of the line.
+
+        Args:
+            line: the text line to be processed.
+
+        Returns:
+            The heading level of the line. 0 if no leading '#' chars.
+
+        """
+
+        m = self.__reoMarkdownHeading.match(line)
+        if not m:
+            return 0
+        h = m.group(1)
+        return len(h)
+
     def _isFileAnIndex(self, absFilePath):
         """Examines the initial lines of a file to determine whether it
         is an index file.
@@ -224,13 +309,33 @@ class MarkdownMerge:
         with io.open(absFilePath, "r") as idxfile:
             for line in idxfile:
                 line = line.strip()
-                if (0 == len(line)
-                or self._isIndexComment(line)):
-                    continue # skip blanks and comments
-                if self._isLeanpubIndexMarker(line):
+                if 0 == len(line):
+                    continue
+                if (self._isLeanpubIndexMarker(line)
+                or self._isMultiMarkdownIndexMarker(line)):
                     return True
+                if self._isIndexComment(line):
+                    continue # skip blanks and comments
                 break
         return False
+
+    def _isHeading(self, line):
+        """Detect whether line begins with '# ', '## ', etc. Such lines
+        are headings when in a markdown file.
+
+        Args:
+            line: the text line to be processed.
+
+        Returns:
+            True if the line begins with '# ', '## ', et cetera;
+            otherwise, False.
+
+        """
+
+        m = self.__reoMarkdownHeading.match(line)
+        if not m:
+            return False
+        return True
 
     def _isIndexComment(self, line):
         """Detect whether line begins with '#'. Such lines are comments
@@ -433,7 +538,7 @@ class MarkdownMerge:
                 yield self.buf.popleft()
 
     def _mergeSingleFile(self,
-        mainDocumentPath, absInfilePath, infileNode, outfile):
+        mainDocumentPath, absInfilePath, infileNode, level, outfile):
         """Add the merged lines of a single top-level file to the output.
 
         Args:
@@ -442,6 +547,8 @@ class MarkdownMerge:
                 in include specifications.
             absInfilePath: the full filename of the input file to process.
             infileNode: the node representing the input file to process.
+            level: the heading level to add to the headings found in the
+                input file.
             outfile: the open output file in which to write the merged lines.
 
         """
@@ -451,7 +558,7 @@ class MarkdownMerge:
                     mainDocumentPath, infileNode, infile, False, False):
                 if None == line:
                     continue
-                outline = line.rstrip("\r\n")
+                outline = self._bumpLevel(level, line.rstrip("\r\n"))
                 outfile.write(outline + '\n')
 
     def _mergeIndexFile(self, absIdxfilePath, idxfileNode, outfile):
@@ -465,6 +572,7 @@ class MarkdownMerge:
 
         """
 
+        firstTime = True
         with io.open(absIdxfilePath, "r") as idxfile:
             for line in idxfile:
                 infilePath = line.strip();
@@ -481,8 +589,29 @@ class MarkdownMerge:
                             absInfilePath))
                     continue
                 infileNode = idxfileNode.addChild(absInfilePath)
+                if not firstTime:
+                    outfile.write("\n") # insert blank line between files
+                firstTime = False
+                level = self._countIndentation(line)
                 self._mergeSingleFile(
-                    absIdxfilePath, absInfilePath, infileNode, outfile)
+                    absIdxfilePath, absInfilePath, infileNode, level, outfile)
+
+    def _shortenLine(self, line):
+        """Shorten a long line to something less than 60 characters; append
+        ellipses if the line was shortened. This is intended to be used
+        for lines displayed in error and warning messages.
+
+        Args:
+            line: the text line to be shortened
+
+        Returns:
+            The shortened line, suitable for display.
+
+        """
+
+        if 60 >= len(line):
+            return line
+        return line[:55] + " ..."
 
     def _stringIsNullOrWhitespace(self, s):
         """Detect whether the string is null, empty, or contains only
@@ -529,4 +658,7 @@ class MarkdownMerge:
             self._mergeIndexFile(absInfilePath, infileNode, outfile)
         else:
             self._mergeSingleFile(
-                absInfilePath, absInfilePath, infileNode, outfile)
+                absInfilePath, absInfilePath, infileNode, 0, outfile)
+
+
+# eof
