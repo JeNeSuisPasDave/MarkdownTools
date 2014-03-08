@@ -2,10 +2,11 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 #
+import argparse
 import os
 import os.path
+import stat
 import sys
-import argparse
 
 class CLI:
     """Handle the command line interface, invoking MarkdownMerge as
@@ -14,6 +15,7 @@ class CLI:
     """
 
     from .node import Node
+    from .markdownMerge import MarkdownMerge
 
     class RedirectStdStreams:
         """A context manager that can temporarily redirect the standard
@@ -45,8 +47,6 @@ class CLI:
         """Constructor
 
         """
-
-        import os.path
 
         self.__stdinRedirected = False
         if stdin is not None:
@@ -201,8 +201,6 @@ class CLI:
 
         """
 
-        import stat
-
         fnf = False
         try:
             if CLI.__STDIN_FILENAME == filepath:
@@ -235,8 +233,6 @@ class CLI:
                 or it doesn't exist.
 
         """
-
-        import stat
 
         try:
             st = os.stat(filepath)
@@ -283,7 +279,6 @@ class CLI:
 
         """
 
-        import os, stat
 
         mode = os.fstat(0).st_mode
         if ((not stat.S_ISFIFO(mode)) # piped
@@ -296,9 +291,6 @@ class CLI:
         """Merge the files.
 
         """
-
-        from mdmerge.node import Node
-        from mdmerge.markdownMerge import MarkdownMerge
 
         if self.__abandonCLI:
             return
