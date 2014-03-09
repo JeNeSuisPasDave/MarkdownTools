@@ -8,14 +8,14 @@ import os.path
 import stat
 import sys
 
+from .node import Node
+from .markdownMerge import MarkdownMerge
+
 class CLI:
     """Handle the command line interface, invoking MarkdownMerge as
     needed.
 
     """
-
-    from .node import Node
-    from .markdownMerge import MarkdownMerge
 
     class RedirectStdStreams:
         """A context manager that can temporarily redirect the standard
@@ -89,6 +89,7 @@ class CLI:
         self.parser.add_argument(
             "--export-target", dest='exportTarget', action='store',
             choices=['html','latex','lyx','opml','rtf','odf'],
+            default='html',
             help="Guide include file wildcard substitution")
         self.parser.add_argument(
             "--leanpub", dest='leanPub', action='store_true',
