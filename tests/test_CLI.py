@@ -151,12 +151,13 @@ class CoreCLITests(unittest.TestCase):
         cut = CLI()
         args = ("tests/data/a.mmd")
         cut.parseCommandArgs(args)
-        self.assertIsNone(cut.args.exportTarget)
+        self.assertEqual("html", cut.args.exportTarget)
         self.assertEqual(1, len(cut.args.inFiles))
         self.assertEqual("tests/data/a.mmd", cut.args.inFiles[0])
         self.assertFalse(cut.args.leanPub)
         self.assertIsNone(cut.args.outFile)
         self.assertFalse(cut.args.showVersion)
+        self.assertFalse(cut.args.forceBook)
 
         self.assertFalse(cut._CLI__abandonCLI)
         self.assertFalse(cut._CLI__useStdin)
@@ -164,7 +165,8 @@ class CoreCLITests(unittest.TestCase):
         self.assertIsNone(cut._CLI__outFilepath)
         self.assertEqual(1, len(cut._CLI__inputFilepaths))
         self.assertFalse(cut._CLI__bookTxtIsSpecial)
-        self.assertIsNone(cut._CLI__wildcardExtensionIs)
+        self.assertEqual(".html", cut._CLI__wildcardExtensionIs)
+        self.assertFalse(cut._CLI__stdinIsBook)
 
     def testParseStdin(self):
         """Test CLI.parseCommandArgs().
@@ -176,12 +178,13 @@ class CoreCLITests(unittest.TestCase):
         cut = CLI()
         args = ("-")
         cut.parseCommandArgs(args)
-        self.assertIsNone(cut.args.exportTarget)
+        self.assertEqual("html", cut.args.exportTarget)
         self.assertEqual(1, len(cut.args.inFiles))
         self.assertEqual("-", cut.args.inFiles[0])
         self.assertFalse(cut.args.leanPub)
         self.assertIsNone(cut.args.outFile)
         self.assertFalse(cut.args.showVersion)
+        self.assertFalse(cut.args.forceBook)
 
         self.assertFalse(cut._CLI__abandonCLI)
         self.assertTrue(cut._CLI__useStdin)
@@ -189,7 +192,9 @@ class CoreCLITests(unittest.TestCase):
         self.assertIsNone(cut._CLI__outFilepath)
         self.assertEqual(1, len(cut._CLI__inputFilepaths))
         self.assertFalse(cut._CLI__bookTxtIsSpecial)
-        self.assertIsNone(cut._CLI__wildcardExtensionIs)
+        self.assertEqual(".html", cut._CLI__wildcardExtensionIs)
+        self.assertFalse(cut._CLI__stdinIsBook)
+        self.assertFalse(cut._CLI__stdinIsBook)
 
     def testParseStdinPlusOthers(self):
         """Test CLI.parseCommandArgs().
@@ -247,12 +252,13 @@ class CoreCLITests(unittest.TestCase):
         args = ("-o", ofilepath, "-")
         cut = CLI()
         cut.parseCommandArgs(args)
-        self.assertIsNone(cut.args.exportTarget)
+        self.assertEqual("html", cut.args.exportTarget)
         self.assertEqual(1, len(cut.args.inFiles))
         self.assertEqual("-", cut.args.inFiles[0])
         self.assertFalse(cut.args.leanPub)
         self.assertEqual(ofilepath, cut.args.outFile)
         self.assertFalse(cut.args.showVersion)
+        self.assertFalse(cut.args.forceBook)
 
         self.assertFalse(cut._CLI__abandonCLI)
         self.assertTrue(cut._CLI__useStdin)
@@ -260,7 +266,8 @@ class CoreCLITests(unittest.TestCase):
         self.assertEqual(ofilepath, cut._CLI__outFilepath)
         self.assertEqual(1, len(cut._CLI__inputFilepaths))
         self.assertFalse(cut._CLI__bookTxtIsSpecial)
-        self.assertIsNone(cut._CLI__wildcardExtensionIs)
+        self.assertEqual(".html", cut._CLI__wildcardExtensionIs)
+        self.assertFalse(cut._CLI__stdinIsBook)
 
     def testParseLeanpub(self):
         """Test CLI.parseCommandArgs().
@@ -272,12 +279,13 @@ class CoreCLITests(unittest.TestCase):
         cut = CLI()
         args = ("--leanpub", "-")
         cut.parseCommandArgs(args)
-        self.assertIsNone(cut.args.exportTarget)
+        self.assertEqual("html", cut.args.exportTarget)
         self.assertEqual(1, len(cut.args.inFiles))
         self.assertEqual("-", cut.args.inFiles[0])
         self.assertTrue(cut.args.leanPub)
         self.assertIsNone(cut.args.outFile)
         self.assertFalse(cut.args.showVersion)
+        self.assertFalse(cut.args.forceBook)
 
         self.assertFalse(cut._CLI__abandonCLI)
         self.assertTrue(cut._CLI__useStdin)
@@ -285,7 +293,8 @@ class CoreCLITests(unittest.TestCase):
         self.assertIsNone(cut._CLI__outFilepath)
         self.assertEqual(1, len(cut._CLI__inputFilepaths))
         self.assertTrue(cut._CLI__bookTxtIsSpecial)
-        self.assertIsNone(cut._CLI__wildcardExtensionIs)
+        self.assertEqual(".html", cut._CLI__wildcardExtensionIs)
+        self.assertFalse(cut._CLI__stdinIsBook)
 
     def testParseLeanpubOnly(self):
         """Test CLI.parseCommandArgs().
@@ -336,6 +345,7 @@ class CoreCLITests(unittest.TestCase):
         self.assertFalse(cut.args.leanPub)
         self.assertIsNone(cut.args.outFile)
         self.assertFalse(cut.args.showVersion)
+        self.assertFalse(cut.args.forceBook)
 
         self.assertFalse(cut._CLI__abandonCLI)
         self.assertTrue(cut._CLI__useStdin)
@@ -344,6 +354,7 @@ class CoreCLITests(unittest.TestCase):
         self.assertEqual(1, len(cut._CLI__inputFilepaths))
         self.assertFalse(cut._CLI__bookTxtIsSpecial)
         self.assertEqual(expectedExt, cut._CLI__wildcardExtensionIs)
+        self.assertFalse(cut._CLI__stdinIsBook)
 
     def testParseExportTargetLatex(self):
         """Test CLI.parseCommandArgs().
@@ -439,6 +450,33 @@ class CoreCLITests(unittest.TestCase):
                 stdout=self.devnull, stderr=self.devnull):
                 cut = CLI()
                 cut.parseCommandArgs(args)
+
+    def testParseStdinIsIndex(self):
+        """Test CLI.parseCommandArgs().
+
+        Specifying stdin should be treated as an index file (a book file).
+
+        """
+
+        cut = CLI()
+        args = ("--book", "-")
+        cut.parseCommandArgs(args)
+        self.assertEqual("html", cut.args.exportTarget)
+        self.assertEqual(1, len(cut.args.inFiles))
+        self.assertEqual("-", cut.args.inFiles[0])
+        self.assertFalse(cut.args.leanPub)
+        self.assertIsNone(cut.args.outFile)
+        self.assertFalse(cut.args.showVersion)
+        self.assertTrue(cut.args.forceBook)
+
+        self.assertFalse(cut._CLI__abandonCLI)
+        self.assertTrue(cut._CLI__useStdin)
+        self.assertTrue(cut._CLI__useStdout)
+        self.assertIsNone(cut._CLI__outFilepath)
+        self.assertEqual(1, len(cut._CLI__inputFilepaths))
+        self.assertFalse(cut._CLI__bookTxtIsSpecial)
+        self.assertEqual(".html", cut._CLI__wildcardExtensionIs)
+        self.assertTrue(cut._CLI__stdinIsBook)
 
     # -------------------------------------------------------------------------+
     # test for CLI.Execute()

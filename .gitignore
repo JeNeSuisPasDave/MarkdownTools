@@ -1,4 +1,6 @@
 venv
+venv3*
+venv2*
 .sass-cache
 __py_cache__
 node_modules

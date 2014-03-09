@@ -1,0 +1,34 @@
+Title: Setting up Python Virtual Environments
+
+# Installing virtualenv
+
+I am assuming here that you have both Mac Ports python27 and python33 installed on your OS X system. If you use brew or fink or something similar, you can make the necessary adjustments in the location of the respective Python framework paths.
+
+To install virtualenv, use either:
+
+~~~bash
+sudo /opt/local/Library/Frameworks/Python.framework/Versions/2.7/bin/pip install virtualenv
+sudo /opt/local/Library/Frameworks/Python.framework/Versions/3.3/bin/pip install virtualenv
+~~~
+
+or
+
+~~~bash
+sudo /opt/local/Library/Frameworks/Python.framework/Versions/2.7/bin/easy_install install virtualenv
+sudo /opt/local/Library/Frameworks/Python.framework/Versions/3.3/bin/easy_install install virtualenv
+sudo easy_install virtualenv
+~~~
+
+# Setting up a Python 2.7 virtual environment
+
+~~~bash
+cd myproject
+/opt/local/Library/Frameworks/Python.framework/Versions/2.7/bin/virtualenv venv2
+~~~
+
+# Setting up a Python 3.3 virtual environment
+
+~~~bash
+cd myproject
+/opt/local/Library/Frameworks/Python.framework/Versions/3.3/bin/virtualenv venv3
+~~~
