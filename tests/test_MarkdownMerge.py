@@ -777,7 +777,6 @@ class MarkdownMergeTests(unittest.TestCase):
 
         self._mergeTest("t-c.mmd", "expected-t-c.mmd", infileAsStdin=True)
 
-
     def testStdinMmdIndexIndentedWithInexactSpaces(self):
         """Test MarkdownMerge.merge().
 
@@ -812,5 +811,125 @@ class MarkdownMergeTests(unittest.TestCase):
         self._mergeTest(
             absInfilePath, "expected-book-indentation.mmd",
             infileAsStdin=True, stdinIsBook=True)
+
+    def testWildcardIncludeLeanpubHtml(self):
+        """Test MarkdownMerge.merge().
+
+        One of the includes has a wildcard extension. Export target is html.
+
+        """
+
+        self._mergeTest(
+            "w.mmd", "expected-w-html.mmd", wildcardExtensionIs=".html")
+
+    def testWildcardIncludeLeanpubLatex(self):
+        """Test MarkdownMerge.merge().
+
+        One of the includes has a wildcard extension. Export target is latex.
+
+        """
+
+        self._mergeTest(
+            "w.mmd", "expected-w-latex.mmd", wildcardExtensionIs=".tex")
+
+    def testWildcardIncludeLeanpubLyx(self):
+        """Test MarkdownMerge.merge().
+
+        One of the includes has a wildcard extension. Export target is lyx.
+
+        """
+
+        self._mergeTest(
+            "w.mmd", "expected-w-lyx.mmd", wildcardExtensionIs=".lyx")
+
+    def testWildcardIncludeLeanpubOdf(self):
+        """Test MarkdownMerge.merge().
+
+        One of the includes has a wildcard extension. Export target is odf.
+
+        """
+
+        self._mergeTest(
+            "w.mmd", "expected-w-odf.mmd", wildcardExtensionIs=".odf")
+
+    def testWildcardIncludeLeanpubOpml(self):
+        """Test MarkdownMerge.merge().
+
+        One of the includes has a wildcard extension. Export target is opml.
+
+        """
+
+        self._mergeTest(
+            "w.mmd", "expected-w-opml.mmd", wildcardExtensionIs=".opml")
+
+    def testWildcardIncludeLeanpubRtf(self):
+        """Test MarkdownMerge.merge().
+
+        One of the includes has a wildcard extension. Export target is rtf.
+
+        """
+
+        self._mergeTest(
+            "w.mmd", "expected-w-rtf.mmd", wildcardExtensionIs=".rtf")
+
+    def testWildcardTransclusionHtml(self):
+        """Test MarkdownMerge.merge().
+
+        One of the includes has a wildcard extension. Export target is html.
+
+        """
+
+        self._mergeTest(
+            "t-w.mmd", "expected-w-html.mmd", wildcardExtensionIs=".html")
+
+    def testWildcardTransclusionLatex(self):
+        """Test MarkdownMerge.merge().
+
+        One of the includes has a wildcard extension. Export target is latex.
+
+        """
+
+        self._mergeTest(
+            "t-w.mmd", "expected-w-latex.mmd", wildcardExtensionIs=".tex")
+
+    def testWildcardTransclusionLyx(self):
+        """Test MarkdownMerge.merge().
+
+        One of the includes has a wildcard extension. Export target is lyx.
+
+        """
+
+        self._mergeTest(
+            "t-w.mmd", "expected-w-lyx.mmd", wildcardExtensionIs=".lyx")
+
+    def testWildcardTransclusionOdf(self):
+        """Test MarkdownMerge.merge().
+
+        One of the includes has a wildcard extension. Export target is odf.
+
+        """
+
+        self._mergeTest(
+            "t-w.mmd", "expected-w-odf.mmd", wildcardExtensionIs=".odf")
+
+    def testWildcardTransclusionOpml(self):
+        """Test MarkdownMerge.merge().
+
+        One of the includes has a wildcard extension. Export target is opml.
+
+        """
+
+        self._mergeTest(
+            "t-w.mmd", "expected-w-opml.mmd", wildcardExtensionIs=".opml")
+
+    def testWildcardTransclusionRtf(self):
+        """Test MarkdownMerge.merge().
+
+        One of the includes has a wildcard extension. Export target is rtf.
+
+        """
+
+        self._mergeTest(
+            "t-w.mmd", "expected-w-rtf.mmd", wildcardExtensionIs=".rtf")
 
 # eof

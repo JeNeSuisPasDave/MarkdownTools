@@ -20,19 +20,21 @@ class MarkdownMerge:
         self.__bookTxtIsSpecial = bookTxtIsSpecial
         self.__stdinIsBook = stdinIsBook
 
-        self.__reoMarkdownHeading = re.compile("^(#+)\s")
+        self.__reoCodeFence = re.compile("^\~\~\~[a-zA-Z0-9]+$")
+        self.__reoFence = re.compile("^\~\~\~$")
         self.__reoIndexComment = re.compile("^#")
+        self.__reoLeanpubCodeInclude = re.compile("^<<\[.*\]\((.+)\)$")
+        self.__reoLeanpubInclude = re.compile("^<<\((.+)\)$")
         self.__reoLeanpubIndexMarker = re.compile("^frontmatter\:$")
         self.__reoLeanpubIndexMeta = re.compile(
             "^(frontmatter\:|mainmatter:|backmatter:)$")
-        self.__reoMultiMarkdownIndexMarker = re.compile("^#\s*merge$")
-        self.__reoMmdTransclusion = re.compile("^\{\{(.+)\}\}$")
-        self.__reoPathAndWildcardExtension = re.compile("^(.+)\.\*$")
+        self.__reoMarkdownHeading = re.compile("^(#+)\s")
         self.__reoMarkedInclude = re.compile("^<<\[(.+)\]$")
-        self.__reoLeanpubInclude = re.compile("^<<\((.+)\)$")
-        self.__reoLeanpubCodeInclude = re.compile("^<<\[.*\]\((.+)\)$")
-        self.__reoCodeFence = re.compile("^\~\~\~[a-zA-Z0-9]+$")
-        self.__reoFence = re.compile("^\~\~\~$")
+        self.__reoMmdTransclusion = re.compile("^\{\{(.+)\}\}$")
+        self.__reoMultiMarkdownIndexMarker = re.compile("^#\s*merge$")
+        self.__reoPathAndWildcardExtension = re.compile("^(.+)\.\*$")
+        self.__reoWildcardExtension = re.compile("^(.+)\.\*$")
+
         self.buf = deque()
 
     def _bumpLevel(self, level, line):
@@ -531,6 +533,7 @@ class MarkdownMerge:
                     #
                     absIncludePath = self._getAbsolutePath(
                         mainDocumentPath, includePath)
+                    absIncludePath = self._resolveWildcardExtension(absIncludePath)
                     includedfileNode = infileNode.addChild(absIncludePath)
                     with io.open(absIncludePath, "r") as includedfile:
                         for deeperLine in self._mergedLines(
@@ -595,6 +598,7 @@ class MarkdownMerge:
 
         """
 
+        absInfilePath = self._resolveWildcardExtension(absInfilePath)
         with io.open(absInfilePath, "r") as infile:
             self._mergeFile(
                 infile, mainDocumentPath, infileNode, level, outfile)
@@ -663,6 +667,29 @@ class MarkdownMerge:
 
         mainDocumentPath = os.path.join(idxfileNode.rootPath(), "dummy")
         self._mergeIndex(sys.stdin, mainDocumentPath, idxfileNode, outfile)
+
+    def _resolveWildcardExtension(self, filePath):
+        """Return the path with the wildcard extension resolve to match
+        the export target. If no wildcard extension used, then the file path
+        will be unchanged.
+
+        Args:
+            filePath: the relative or absolute file path to check for a
+                wildcard extension.
+
+        Returns:
+            The file path with the wildcard extension replaced with a
+            specific extension matching the export target. If no wilcard
+            extension was used, then the return value is the filePath argument
+            value.
+
+        """
+
+        m = self.__reoWildcardExtension.match(filePath)
+        if not m:
+            return filePath
+        resolvedPath = m.group(1) + self.__wildcardExtensionIs
+        return resolvedPath
 
     def _shortenLine(self, line):
         """Shorten a long line to something less than 60 characters; append
