@@ -115,159 +115,130 @@ class CoreCLITests(unittest.TestCase):
     # tests for CLI.parseCommandArgs()
     # -------------------------------------------------------------------------+
 
-    def testParseVersion(self):
+    def testParseExportTargetHtml(self):
         """Test CLI.parseCommandArgs().
 
-        Happy path '--version' argument.
-
-        """
-
-        cut = CLI()
-        args = ("--version",)
-        cut.parseCommandArgs(args)
-        self.assertTrue(cut.args.showVersion)
-
-    def testParseVersionInvalidArgs(self):
-        """Test CLI.parseCommandArgs().
-
-        '--version' argument, with extra invalid stuff.
-
-        """
-
-        args = ("--version", "-x")
-        with self.assertRaises(SystemExit):
-            with CoreCLITests.RedirectStdStreams(
-                stdout=self.devnull, stderr=self.devnull):
-                cut = CLI()
-                cut.parseCommandArgs(args)
-
-    def testParseOneInputFile(self):
-        """Test CLI.parseCommandArgs().
-
-        Happy path. A single input file with no optional arguments.
-
-        """
-
-        cut = CLI()
-        args = ("tests/data/a.mmd")
-        cut.parseCommandArgs(args)
-        self.assertEqual("html", cut.args.exportTarget)
-        self.assertEqual(1, len(cut.args.inFiles))
-        self.assertEqual("tests/data/a.mmd", cut.args.inFiles[0])
-        self.assertFalse(cut.args.leanPub)
-        self.assertIsNone(cut.args.outFile)
-        self.assertFalse(cut.args.showVersion)
-        self.assertFalse(cut.args.forceBook)
-
-        self.assertFalse(cut._CLI__abandonCLI)
-        self.assertFalse(cut._CLI__useStdin)
-        self.assertTrue(cut._CLI__useStdout)
-        self.assertIsNone(cut._CLI__outFilepath)
-        self.assertEqual(1, len(cut._CLI__inputFilepaths))
-        self.assertFalse(cut._CLI__bookTxtIsSpecial)
-        self.assertEqual(".html", cut._CLI__wildcardExtensionIs)
-        self.assertFalse(cut._CLI__stdinIsBook)
-
-    def testParseStdin(self):
-        """Test CLI.parseCommandArgs().
-
-        Happy path. Using stdin instead of input files.
-
-        """
-
-        cut = CLI()
-        args = ("-")
-        cut.parseCommandArgs(args)
-        self.assertEqual("html", cut.args.exportTarget)
-        self.assertEqual(1, len(cut.args.inFiles))
-        self.assertEqual("-", cut.args.inFiles[0])
-        self.assertFalse(cut.args.leanPub)
-        self.assertIsNone(cut.args.outFile)
-        self.assertFalse(cut.args.showVersion)
-        self.assertFalse(cut.args.forceBook)
-
-        self.assertFalse(cut._CLI__abandonCLI)
-        self.assertTrue(cut._CLI__useStdin)
-        self.assertTrue(cut._CLI__useStdout)
-        self.assertIsNone(cut._CLI__outFilepath)
-        self.assertEqual(1, len(cut._CLI__inputFilepaths))
-        self.assertFalse(cut._CLI__bookTxtIsSpecial)
-        self.assertEqual(".html", cut._CLI__wildcardExtensionIs)
-        self.assertFalse(cut._CLI__stdinIsBook)
-        self.assertFalse(cut._CLI__stdinIsBook)
-
-    def testParseStdinPlusOthers(self):
-        """Test CLI.parseCommandArgs().
-
-        Using stdin as well as a list of input files. Expecting
-        an error.
-
-        """
-
-        args = ("-", "tests/data/a.mmd")
-        with self.assertRaises(SystemExit):
-            with CoreCLITests.RedirectStdStreams(
-                stdout=self.devnull, stderr=self.devnull):
-                cut = CLI()
-                cut.parseCommandArgs(args)
-
-    def testParseOutWithNoFile(self):
-        """Test CLI.parseCommandArgs().
-
-        Using an output file but ambigous about whether
-        token after output flag is an out file or an in file.
+        Specify unrecognized flag.
         Expecting an error.
 
         """
 
-        args = ("-o", "tests/data/a.mmd")
-        with self.assertRaises(SystemExit):
-            with CoreCLITests.RedirectStdStreams(
-                stdout=self.devnull, stderr=self.devnull):
-                cut = CLI()
-                cut.parseCommandArgs(args)
-
-    def testParseOutWithNoFileJustStdin(self):
-        """Test CLI.parseCommandArgs().
-
-        Using stdin alone. Expecting an error.
-
-        """
-
-        args = ("-o", "-")
-        with self.assertRaises(SystemExit):
-            with CoreCLITests.RedirectStdStreams(
-                stdout=self.devnull, stderr=self.devnull):
-                cut = CLI()
-                cut.parseCommandArgs(args)
-
-    def testParseOutfileAndStdin(self):
-        """Test CLI.parseCommandArgs().
-
-        Using stdin and an output file.
-
-        """
-
-        ofilepath = os.path.join(self.tempDirPath.name, "x.html")
-        args = ("-o", ofilepath, "-")
+        tgt = "html"
+        expectedExt = "." + tgt;
+        args = ("--export-target", tgt, "-")
         cut = CLI()
         cut.parseCommandArgs(args)
-        self.assertEqual("html", cut.args.exportTarget)
+        self.assertEqual(tgt, cut.args.exportTarget)
         self.assertEqual(1, len(cut.args.inFiles))
         self.assertEqual("-", cut.args.inFiles[0])
         self.assertFalse(cut.args.leanPub)
-        self.assertEqual(ofilepath, cut.args.outFile)
+        self.assertIsNone(cut.args.outFile)
         self.assertFalse(cut.args.showVersion)
         self.assertFalse(cut.args.forceBook)
 
         self.assertFalse(cut._CLI__abandonCLI)
         self.assertTrue(cut._CLI__useStdin)
-        self.assertFalse(cut._CLI__useStdout)
-        self.assertEqual(ofilepath, cut._CLI__outFilepath)
+        self.assertTrue(cut._CLI__useStdout)
+        self.assertIsNone(cut._CLI__outFilepath)
         self.assertEqual(1, len(cut._CLI__inputFilepaths))
         self.assertFalse(cut._CLI__bookTxtIsSpecial)
-        self.assertEqual(".html", cut._CLI__wildcardExtensionIs)
+        self.assertEqual(expectedExt, cut._CLI__wildcardExtensionIs)
         self.assertFalse(cut._CLI__stdinIsBook)
+
+    def testParseExportTargetInvalid(self):
+        """Test CLI.parseCommandArgs().
+
+        Specify unrecognized flag.
+        Expecting an error.
+
+        """
+
+        args = ("--export-target", "wat", "-")
+        with self.assertRaises(SystemExit):
+            with CoreCLITests.RedirectStdStreams(
+                stdout=self.devnull, stderr=self.devnull):
+                cut = CLI()
+                cut.parseCommandArgs(args)
+
+    def testParseExportTargetLatex(self):
+        """Test CLI.parseCommandArgs().
+
+        Specify unrecognized flag.
+        Expecting an error.
+
+        """
+
+        tgt = "latex"
+        expectedExt = ".tex";
+        args = ("--export-target", tgt, "-")
+        cut = CLI()
+        cut.parseCommandArgs(args)
+        self.assertEqual(tgt, cut.args.exportTarget)
+        self.assertEqual(expectedExt, cut._CLI__wildcardExtensionIs)
+
+    def testParseExportTargetLyx(self):
+        """Test CLI.parseCommandArgs().
+
+        Specify unrecognized flag.
+        Expecting an error.
+
+        """
+
+        tgt = "lyx"
+        expectedExt = "." + tgt;
+        args = ("--export-target", tgt, "-")
+        cut = CLI()
+        cut.parseCommandArgs(args)
+        self.assertEqual(tgt, cut.args.exportTarget)
+        self.assertEqual(expectedExt, cut._CLI__wildcardExtensionIs)
+
+    def testParseExportTargetOdf(self):
+        """Test CLI.parseCommandArgs().
+
+        Specify unrecognized flag.
+        Expecting an error.
+
+        """
+
+        tgt = "odf"
+        expectedExt = "." + tgt;
+        args = ("--export-target", tgt, "-")
+        cut = CLI()
+        cut.parseCommandArgs(args)
+        self.assertEqual(tgt, cut.args.exportTarget)
+        self.assertEqual(expectedExt, cut._CLI__wildcardExtensionIs)
+
+    def testParseExportTargetOpml(self):
+        """Test CLI.parseCommandArgs().
+
+        Specify unrecognized flag.
+        Expecting an error.
+
+        """
+
+        tgt = "opml"
+        expectedExt = "." + tgt;
+        args = ("--export-target", tgt, "-")
+        cut = CLI()
+        cut.parseCommandArgs(args)
+        self.assertEqual(tgt, cut.args.exportTarget)
+        self.assertEqual(expectedExt, cut._CLI__wildcardExtensionIs)
+
+    def testParseExportTargetRtf(self):
+        """Test CLI.parseCommandArgs().
+
+        Specify unrecognized flag.
+        Expecting an error.
+
+        """
+
+        tgt = "rtf"
+        expectedExt = "." + tgt;
+        args = ("--export-target", tgt, "-")
+        cut = CLI()
+        cut.parseCommandArgs(args)
+        self.assertEqual(tgt, cut.args.exportTarget)
+        self.assertEqual(expectedExt, cut._CLI__wildcardExtensionIs)
 
     def testParseLeanpub(self):
         """Test CLI.parseCommandArgs().
@@ -311,35 +282,102 @@ class CoreCLITests(unittest.TestCase):
                 cut = CLI()
                 cut.parseCommandArgs(args)
 
-    def testParseUnrecognizedArg(self):
+    def testParseOneInputFile(self):
         """Test CLI.parseCommandArgs().
 
-        Specify unrecognized flag.
+        Happy path. A single input file with no optional arguments.
+
+        """
+
+        cut = CLI()
+        args = ("tests/data/a.mmd")
+        cut.parseCommandArgs(args)
+        self.assertEqual("html", cut.args.exportTarget)
+        self.assertEqual(1, len(cut.args.inFiles))
+        self.assertEqual("tests/data/a.mmd", cut.args.inFiles[0])
+        self.assertFalse(cut.args.leanPub)
+        self.assertIsNone(cut.args.outFile)
+        self.assertFalse(cut.args.showVersion)
+        self.assertFalse(cut.args.forceBook)
+
+        self.assertFalse(cut._CLI__abandonCLI)
+        self.assertFalse(cut._CLI__useStdin)
+        self.assertTrue(cut._CLI__useStdout)
+        self.assertIsNone(cut._CLI__outFilepath)
+        self.assertEqual(1, len(cut._CLI__inputFilepaths))
+        self.assertFalse(cut._CLI__bookTxtIsSpecial)
+        self.assertEqual(".html", cut._CLI__wildcardExtensionIs)
+        self.assertFalse(cut._CLI__stdinIsBook)
+
+    def testParseOutfileAndStdin(self):
+        """Test CLI.parseCommandArgs().
+
+        Using stdin and an output file.
+
+        """
+
+        ofilepath = os.path.join(self.tempDirPath.name, "x.html")
+        args = ("-o", ofilepath, "-")
+        cut = CLI()
+        cut.parseCommandArgs(args)
+        self.assertEqual("html", cut.args.exportTarget)
+        self.assertEqual(1, len(cut.args.inFiles))
+        self.assertEqual("-", cut.args.inFiles[0])
+        self.assertFalse(cut.args.leanPub)
+        self.assertEqual(ofilepath, cut.args.outFile)
+        self.assertFalse(cut.args.showVersion)
+        self.assertFalse(cut.args.forceBook)
+
+        self.assertFalse(cut._CLI__abandonCLI)
+        self.assertTrue(cut._CLI__useStdin)
+        self.assertFalse(cut._CLI__useStdout)
+        self.assertEqual(ofilepath, cut._CLI__outFilepath)
+        self.assertEqual(1, len(cut._CLI__inputFilepaths))
+        self.assertFalse(cut._CLI__bookTxtIsSpecial)
+        self.assertEqual(".html", cut._CLI__wildcardExtensionIs)
+        self.assertFalse(cut._CLI__stdinIsBook)
+
+    def testParseOutWithNoFile(self):
+        """Test CLI.parseCommandArgs().
+
+        Using an output file but ambigous about whether
+        token after output flag is an out file or an in file.
         Expecting an error.
 
         """
 
-        args = ("--wat", "-")
+        args = ("-o", "tests/data/a.mmd")
         with self.assertRaises(SystemExit):
             with CoreCLITests.RedirectStdStreams(
                 stdout=self.devnull, stderr=self.devnull):
                 cut = CLI()
                 cut.parseCommandArgs(args)
 
-    def testParseExportTargetHtml(self):
+    def testParseOutWithNoFileJustStdin(self):
         """Test CLI.parseCommandArgs().
 
-        Specify unrecognized flag.
-        Expecting an error.
+        Using stdin alone. Expecting an error.
 
         """
 
-        tgt = "html"
-        expectedExt = "." + tgt;
-        args = ("--export-target", tgt, "-")
+        args = ("-o", "-")
+        with self.assertRaises(SystemExit):
+            with CoreCLITests.RedirectStdStreams(
+                stdout=self.devnull, stderr=self.devnull):
+                cut = CLI()
+                cut.parseCommandArgs(args)
+
+    def testParseStdin(self):
+        """Test CLI.parseCommandArgs().
+
+        Happy path. Using stdin instead of input files.
+
+        """
+
         cut = CLI()
+        args = ("-")
         cut.parseCommandArgs(args)
-        self.assertEqual(tgt, cut.args.exportTarget)
+        self.assertEqual("html", cut.args.exportTarget)
         self.assertEqual(1, len(cut.args.inFiles))
         self.assertEqual("-", cut.args.inFiles[0])
         self.assertFalse(cut.args.leanPub)
@@ -353,103 +391,9 @@ class CoreCLITests(unittest.TestCase):
         self.assertIsNone(cut._CLI__outFilepath)
         self.assertEqual(1, len(cut._CLI__inputFilepaths))
         self.assertFalse(cut._CLI__bookTxtIsSpecial)
-        self.assertEqual(expectedExt, cut._CLI__wildcardExtensionIs)
+        self.assertEqual(".html", cut._CLI__wildcardExtensionIs)
         self.assertFalse(cut._CLI__stdinIsBook)
-
-    def testParseExportTargetLatex(self):
-        """Test CLI.parseCommandArgs().
-
-        Specify unrecognized flag.
-        Expecting an error.
-
-        """
-
-        tgt = "latex"
-        expectedExt = ".tex";
-        args = ("--export-target", tgt, "-")
-        cut = CLI()
-        cut.parseCommandArgs(args)
-        self.assertEqual(tgt, cut.args.exportTarget)
-        self.assertEqual(expectedExt, cut._CLI__wildcardExtensionIs)
-
-    def testParseExportTargetLyx(self):
-        """Test CLI.parseCommandArgs().
-
-        Specify unrecognized flag.
-        Expecting an error.
-
-        """
-
-        tgt = "lyx"
-        expectedExt = "." + tgt;
-        args = ("--export-target", tgt, "-")
-        cut = CLI()
-        cut.parseCommandArgs(args)
-        self.assertEqual(tgt, cut.args.exportTarget)
-        self.assertEqual(expectedExt, cut._CLI__wildcardExtensionIs)
-
-    def testParseExportTargetOpml(self):
-        """Test CLI.parseCommandArgs().
-
-        Specify unrecognized flag.
-        Expecting an error.
-
-        """
-
-        tgt = "opml"
-        expectedExt = "." + tgt;
-        args = ("--export-target", tgt, "-")
-        cut = CLI()
-        cut.parseCommandArgs(args)
-        self.assertEqual(tgt, cut.args.exportTarget)
-        self.assertEqual(expectedExt, cut._CLI__wildcardExtensionIs)
-
-    def testParseExportTargetRtf(self):
-        """Test CLI.parseCommandArgs().
-
-        Specify unrecognized flag.
-        Expecting an error.
-
-        """
-
-        tgt = "rtf"
-        expectedExt = "." + tgt;
-        args = ("--export-target", tgt, "-")
-        cut = CLI()
-        cut.parseCommandArgs(args)
-        self.assertEqual(tgt, cut.args.exportTarget)
-        self.assertEqual(expectedExt, cut._CLI__wildcardExtensionIs)
-
-    def testParseExportTargetOdf(self):
-        """Test CLI.parseCommandArgs().
-
-        Specify unrecognized flag.
-        Expecting an error.
-
-        """
-
-        tgt = "odf"
-        expectedExt = "." + tgt;
-        args = ("--export-target", tgt, "-")
-        cut = CLI()
-        cut.parseCommandArgs(args)
-        self.assertEqual(tgt, cut.args.exportTarget)
-        self.assertEqual(expectedExt, cut._CLI__wildcardExtensionIs)
-
-    def testParseExportTargetInvalid(self):
-        """Test CLI.parseCommandArgs().
-
-        Specify unrecognized flag.
-        Expecting an error.
-
-        """
-
-        args = ("--export-target", "wat", "-")
-        with self.assertRaises(SystemExit):
-            with CoreCLITests.RedirectStdStreams(
-                stdout=self.devnull, stderr=self.devnull):
-                cut = CLI()
-                cut.parseCommandArgs(args)
+        self.assertFalse(cut._CLI__stdinIsBook)
 
     def testParseStdinIsIndex(self):
         """Test CLI.parseCommandArgs().
@@ -477,6 +421,62 @@ class CoreCLITests(unittest.TestCase):
         self.assertFalse(cut._CLI__bookTxtIsSpecial)
         self.assertEqual(".html", cut._CLI__wildcardExtensionIs)
         self.assertTrue(cut._CLI__stdinIsBook)
+
+    def testParseStdinPlusOthers(self):
+        """Test CLI.parseCommandArgs().
+
+        Using stdin as well as a list of input files. Expecting
+        an error.
+
+        """
+
+        args = ("-", "tests/data/a.mmd")
+        with self.assertRaises(SystemExit):
+            with CoreCLITests.RedirectStdStreams(
+                stdout=self.devnull, stderr=self.devnull):
+                cut = CLI()
+                cut.parseCommandArgs(args)
+
+    def testParseUnrecognizedArg(self):
+        """Test CLI.parseCommandArgs().
+
+        Specify unrecognized flag.
+        Expecting an error.
+
+        """
+
+        args = ("--wat", "-")
+        with self.assertRaises(SystemExit):
+            with CoreCLITests.RedirectStdStreams(
+                stdout=self.devnull, stderr=self.devnull):
+                cut = CLI()
+                cut.parseCommandArgs(args)
+
+    def testParseVersion(self):
+        """Test CLI.parseCommandArgs().
+
+        Happy path '--version' argument.
+
+        """
+
+        cut = CLI()
+        args = ("--version",)
+        cut.parseCommandArgs(args)
+        self.assertTrue(cut.args.showVersion)
+
+    def testParseVersionInvalidArgs(self):
+        """Test CLI.parseCommandArgs().
+
+        '--version' argument, with extra invalid stuff.
+
+        """
+
+        args = ("--version", "-x")
+        with self.assertRaises(SystemExit):
+            with CoreCLITests.RedirectStdStreams(
+                stdout=self.devnull, stderr=self.devnull):
+                cut = CLI()
+                cut.parseCommandArgs(args)
 
     # -------------------------------------------------------------------------+
     # test for CLI.Execute()
@@ -535,3 +535,6 @@ class CoreCLITests(unittest.TestCase):
             unittest.mock.call.write("\n")]
         rwMock.assert_has_calls(calls)
         self.assertEqual(2, rwMock.write.call_count)
+
+
+#eof
