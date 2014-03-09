@@ -812,6 +812,17 @@ class MarkdownMergeTests(unittest.TestCase):
             absInfilePath, "expected-book-indentation.mmd",
             infileAsStdin=True, stdinIsBook=True)
 
+    def testWildcardIncludeLeanpubDefault(self):
+        """Test MarkdownMerge.merge().
+
+        One of the includes has a wildcard extension. Export target is html,
+        by default.
+
+        """
+
+        self._mergeTest(
+            "w.mmd", "expected-w-html.mmd")
+
     def testWildcardIncludeLeanpubHtml(self):
         """Test MarkdownMerge.merge().
 
@@ -871,6 +882,17 @@ class MarkdownMergeTests(unittest.TestCase):
 
         self._mergeTest(
             "w.mmd", "expected-w-rtf.mmd", wildcardExtensionIs=".rtf")
+
+    def testWildcardTransclusionDefault(self):
+        """Test MarkdownMerge.merge().
+
+        One of the includes has a wildcard extension. Export target is html,
+        by default.
+
+        """
+
+        self._mergeTest(
+            "t-w.mmd", "expected-w-html.mmd")
 
     def testWildcardTransclusionHtml(self):
         """Test MarkdownMerge.merge().
