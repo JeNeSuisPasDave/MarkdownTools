@@ -3,12 +3,14 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 #
 """
-Unit tests for the MarkdownMerge module, CLI class.
+Unit tests for the cli module, CLI class.
 
 """
 
+from __future__ import print_function, with_statement, generators, \
+    unicode_literals
 import unittest
-import unittest.mock
+import mock
 import os
 import os.path
 import re
@@ -55,7 +57,7 @@ class CoreCLITests(unittest.TestCase):
 
     def __init__(self, *args):
         self.devnull = open(os.devnull, "w")
-        super().__init__(*args)
+        unittest.TestCase.__init__(self, *args)
         self.__root = os.path.dirname(__file__)
         self.__dataDir = os.path.join(self.__root, "data")
 
@@ -75,7 +77,7 @@ class CoreCLITests(unittest.TestCase):
     def _SideEffectExpandUser(self, path):
         if not path.startswith("~"):
             return path
-        path = path.replace("~", self.tempDirPath.name)
+        path = path.replace("~", self.tempDirPath)
         return path
 
     # -------------------------------------------------------------------------+
@@ -89,7 +91,7 @@ class CoreCLITests(unittest.TestCase):
 
         import tempfile
 
-        self.tempDirPath = tempfile.TemporaryDirectory()
+        self.tempDirPath = tempfile.mkdtemp()
         return
 
     def tearDown(self):
@@ -97,10 +99,11 @@ class CoreCLITests(unittest.TestCase):
 
         """
 
-        import tempfile
+        import shutil
 
-        self.tempDirPath.cleanup()
-        self.tempDirPath = None
+        if None != self.tempDirPath:
+            shutil.rmtree(self.tempDirPath)
+            self.tempDirPath = None
 
     def testNoOp(self):
         """Excercise tearDown and setUp methods.
@@ -316,7 +319,7 @@ class CoreCLITests(unittest.TestCase):
 
         """
 
-        ofilepath = os.path.join(self.tempDirPath.name, "x.html")
+        ofilepath = os.path.join(self.tempDirPath, "x.html")
         args = ("-o", ofilepath, "-")
         cut = CLI()
         cut.parseCommandArgs(args)
@@ -485,7 +488,7 @@ class CoreCLITests(unittest.TestCase):
     # merge tests
     #
 
-    @unittest.mock.patch('os.path.expanduser')
+    @mock.patch('os.path.expanduser')
     def xtestNoIncludes(self, mock_expanduser):
         """Test CLI.Execute()
 
@@ -495,9 +498,9 @@ class CoreCLITests(unittest.TestCase):
 
 
         mock_expanduser.side_effect = lambda x: self._SideEffectExpandUser(x)
-        rwMock = unittest.mock.MagicMock()
+        rwMock = mock.MagicMock()
         inputFilePath = os.path.join(self.__dataDir, "no-include.mmd")
-        outputFilePath = os.path.join(self.tempDirPath.name, "out.mmd")
+        outputFilePath = os.path.join(self.tempDirPath, "out.mmd")
 
         cut = CLI(stdin=rwMock, stdout=rwMock)
         args = ("-o", outputFilePath, inputFilePath)
@@ -511,7 +514,7 @@ class CoreCLITests(unittest.TestCase):
     # miscellaneous tests
     #
 
-    @unittest.mock.patch('os.path.expanduser')
+    @mock.patch('os.path.expanduser')
     def xtestShowVersion(self, mock_expanduser):
         """Test CLI.Execute()
 
@@ -523,16 +526,16 @@ class CoreCLITests(unittest.TestCase):
         import mdMerge
 
         mock_expanduser.side_effect = lambda x: self._SideEffectExpandUser(x)
-        rwMock = unittest.mock.MagicMock()
+        rwMock = mock.MagicMock()
         cut = CLI(stdin=rwMock, stdout=rwMock)
         args = ("--version", )
         cut.parseCommandArgs(args)
         rwMock.reset_mock()
         cut.Execute()
         calls = [
-            unittest.mock.call.write(
+            mock.call.write(
                 "mdmerge version {0}".format(mdMerge.__version__)),
-            unittest.mock.call.write("\n")]
+            mock.call.write("\n")]
         rwMock.assert_has_calls(calls)
         self.assertEqual(2, rwMock.write.call_count)
 

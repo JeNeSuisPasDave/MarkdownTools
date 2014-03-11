@@ -3,12 +3,13 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 #
 """
-Unit tests for the MarkdownMerge module, MarkdownMerge class.
+Unit tests for the markdownMerge module, MarkdownMerge class.
 
 """
 
+from __future__ import print_function, with_statement, generators, \
+    unicode_literals
 import unittest
-import unittest.mock
 import os
 import os.path
 import re
@@ -50,7 +51,7 @@ class MarkdownMergeTests(unittest.TestCase):
 
     def __init__(self, *args):
         self.devnull = open(os.devnull, "w")
-        super().__init__(*args)
+        unittest.TestCase.__init__(self, *args)
         self.__root = os.path.dirname(__file__)
         self.__dataDir = os.path.join(self.__root, "data")
 
@@ -97,8 +98,8 @@ class MarkdownMergeTests(unittest.TestCase):
         if None != expectedfilePath:
             expectedfilePath = os.path.join(self.__dataDir, expectedfilePath)
             expectedSize = os.stat(expectedfilePath).st_size
-        outfilePath = os.path.join(self.tempDirPath.name, "result.mmd")
-        errfilePath = os.path.join(self.tempDirPath.name, "result.err")
+        outfilePath = os.path.join(self.tempDirPath, "result.mmd")
+        errfilePath = os.path.join(self.tempDirPath, "result.err")
         if infileAsStdin:
             with io.open(outfilePath, "w") as outfile, \
                 io.open(errfilePath, "w") as errfile, \
@@ -153,8 +154,8 @@ class MarkdownMergeTests(unittest.TestCase):
         if None != expectedfilePath:
             expectedfilePath = os.path.join(self.__dataDir, expectedfilePath)
             expectedSize = os.stat(expectedfilePath).st_size
-        outfilePath = os.path.join(self.tempDirPath.name, "result.mmd")
-        errfilePath = os.path.join(self.tempDirPath.name, "result.err")
+        outfilePath = os.path.join(self.tempDirPath, "result.mmd")
+        errfilePath = os.path.join(self.tempDirPath, "result.err")
         if infileAsStdin:
             with io.open(outfilePath, "w") as outfile, \
                 io.open(errfilePath, "w") as errfile, \
@@ -187,7 +188,7 @@ class MarkdownMergeTests(unittest.TestCase):
     def _sideEffectExpandUser(self, path):
         if not path.startswith("~"):
             return path
-        path = path.replace("~", self.tempDirPath.name)
+        path = path.replace("~", self.tempDirPath)
         return path
 
     # -------------------------------------------------------------------------+
@@ -201,7 +202,7 @@ class MarkdownMergeTests(unittest.TestCase):
 
         import tempfile
 
-        self.tempDirPath = tempfile.TemporaryDirectory()
+        self.tempDirPath = tempfile.mkdtemp()
         return
 
     def tearDown(self):
@@ -209,10 +210,11 @@ class MarkdownMergeTests(unittest.TestCase):
 
         """
 
-        import tempfile
+        import shutil
 
-        self.tempDirPath.cleanup()
-        self.tempDirPath = None
+        if None != self.tempDirPath:
+            shutil.rmtree(self.tempDirPath)
+            self.tempDirPath = None
 
     def testNoOp(self):
         """Excercise tearDown and setUp methods.
@@ -235,8 +237,8 @@ class MarkdownMergeTests(unittest.TestCase):
         """
 
         infilePath = os.path.join(self.__dataDir, "empty.mmd")
-        outfilePath = os.path.join(self.tempDirPath.name, "result.mmd")
-        errfilePath = os.path.join(self.tempDirPath.name, "result.err")
+        outfilePath = os.path.join(self.tempDirPath, "result.mmd")
+        errfilePath = os.path.join(self.tempDirPath, "result.err")
         with io.open(outfilePath, "w") as outfile, \
             io.open(errfilePath, "w") as errfile, \
             MarkdownMergeTests.RedirectStdStreams(
@@ -347,7 +349,7 @@ class MarkdownMergeTests(unittest.TestCase):
         """
 
         # create the temp directory
-        inputdirPath = os.path.join(self.tempDirPath.name, "Inputs")
+        inputdirPath = os.path.join(self.tempDirPath, "Inputs")
         os.makedirs(inputdirPath)
 
         # copy the index file to a temp directory
@@ -377,7 +379,7 @@ class MarkdownMergeTests(unittest.TestCase):
         """
 
         # create the temp directory
-        inputdirPath = os.path.join(self.tempDirPath.name, "Inputs")
+        inputdirPath = os.path.join(self.tempDirPath, "Inputs")
         os.makedirs(inputdirPath)
 
         # copy the index file to a temp directory
@@ -408,7 +410,7 @@ class MarkdownMergeTests(unittest.TestCase):
         """
 
         # create the temp directory
-        inputdirPath = os.path.join(self.tempDirPath.name, "Inputs")
+        inputdirPath = os.path.join(self.tempDirPath, "Inputs")
         os.makedirs(inputdirPath)
 
         # copy the index file to a temp directory
@@ -440,7 +442,7 @@ class MarkdownMergeTests(unittest.TestCase):
         """
 
         # create the temp directory
-        inputdirPath = os.path.join(self.tempDirPath.name, "Inputs")
+        inputdirPath = os.path.join(self.tempDirPath, "Inputs")
         os.makedirs(inputdirPath)
 
         # copy the index file to a temp directory
@@ -472,7 +474,7 @@ class MarkdownMergeTests(unittest.TestCase):
         """
 
         # create the temp directory
-        inputdirPath = os.path.join(self.tempDirPath.name, "Inputs")
+        inputdirPath = os.path.join(self.tempDirPath, "Inputs")
         os.makedirs(inputdirPath)
 
         # copy the index file to a temp directory
@@ -505,7 +507,7 @@ class MarkdownMergeTests(unittest.TestCase):
         """
 
         # create the temp directory
-        inputdirPath = os.path.join(self.tempDirPath.name, "Inputs")
+        inputdirPath = os.path.join(self.tempDirPath, "Inputs")
         os.makedirs(inputdirPath)
 
         # copy the index file to a temp directory
@@ -537,7 +539,7 @@ class MarkdownMergeTests(unittest.TestCase):
         """
 
         # create the temp directory
-        inputdirPath = os.path.join(self.tempDirPath.name, "Inputs")
+        inputdirPath = os.path.join(self.tempDirPath, "Inputs")
         os.makedirs(inputdirPath)
 
         # copy the index file to a temp directory
@@ -569,7 +571,7 @@ class MarkdownMergeTests(unittest.TestCase):
         """
 
         # create the temp directory
-        inputdirPath = os.path.join(self.tempDirPath.name, "Inputs")
+        inputdirPath = os.path.join(self.tempDirPath, "Inputs")
         os.makedirs(inputdirPath)
 
         # copy the index file to a temp directory
@@ -600,7 +602,7 @@ class MarkdownMergeTests(unittest.TestCase):
         """
 
         # create the temp directory
-        inputdirPath = os.path.join(self.tempDirPath.name, "Inputs")
+        inputdirPath = os.path.join(self.tempDirPath, "Inputs")
         os.makedirs(inputdirPath)
 
         # copy the index file to a temp directory
@@ -633,7 +635,7 @@ class MarkdownMergeTests(unittest.TestCase):
         """
 
         # create the temp directory
-        inputdirPath = os.path.join(self.tempDirPath.name, "Inputs")
+        inputdirPath = os.path.join(self.tempDirPath, "Inputs")
         os.makedirs(inputdirPath)
 
         # copy the index file to a temp directory
@@ -667,7 +669,7 @@ class MarkdownMergeTests(unittest.TestCase):
         """
 
         # create the temp directory
-        inputdirPath = os.path.join(self.tempDirPath.name, "Inputs")
+        inputdirPath = os.path.join(self.tempDirPath, "Inputs")
         os.makedirs(inputdirPath)
 
         # copy the index file to a temp directory
@@ -701,7 +703,7 @@ class MarkdownMergeTests(unittest.TestCase):
         """
 
         # create the temp directory
-        inputdirPath = os.path.join(self.tempDirPath.name, "Inputs")
+        inputdirPath = os.path.join(self.tempDirPath, "Inputs")
         os.makedirs(inputdirPath)
 
         # copy the index file to a temp directory
@@ -736,7 +738,7 @@ class MarkdownMergeTests(unittest.TestCase):
         """
 
         # create the temp directory
-        inputdirPath = os.path.join(self.tempDirPath.name, "Inputs")
+        inputdirPath = os.path.join(self.tempDirPath, "Inputs")
         os.makedirs(inputdirPath)
 
         # copy the index file to a temp directory
@@ -788,7 +790,7 @@ class MarkdownMergeTests(unittest.TestCase):
         """
 
         # create the temp directory
-        inputdirPath = os.path.join(self.tempDirPath.name, "Inputs")
+        inputdirPath = os.path.join(self.tempDirPath, "Inputs")
         os.makedirs(inputdirPath)
 
         # copy the index file to a temp directory

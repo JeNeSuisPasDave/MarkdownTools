@@ -3,12 +3,13 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 #
 """
-Unit tests for the Node class of of the mdmerge module.
+Unit tests for the Node class of of the node module.
 
 """
 
+from __future__ import print_function, with_statement, generators, \
+    unicode_literals
 import unittest
-import unittest.mock
 import os
 
 from mdmerge.node import Node
@@ -17,7 +18,7 @@ class NodeTests(unittest.TestCase):
 
     def __init__(self, *args):
         self.devnull = open(os.devnull, "w")
-        super().__init__(*args)
+        unittest.TestCase.__init__(self, *args)
         self.__root = os.path.dirname(__file__)
         self.__dataDir = os.path.join(self.__root, "data")
 
@@ -32,7 +33,7 @@ class NodeTests(unittest.TestCase):
 
         import tempfile
 
-        self.tempDirPath = tempfile.TemporaryDirectory()
+        self.tempDirPath = tempfile.mkdtemp()
         return
 
     def tearDown(self):
@@ -40,10 +41,11 @@ class NodeTests(unittest.TestCase):
 
         """
 
-        import tempfile
+        import shutil
 
-        self.tempDirPath.cleanup()
-        self.tempDirPath = None
+        if None != self.tempDirPath:
+            shutil.rmtree(self.tempDirPath)
+            self.tempDirPath = None
 
     def testNoOp(self):
         """Excercise tearDown and setUp methods.

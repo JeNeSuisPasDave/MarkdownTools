@@ -2,6 +2,8 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 #
+from __future__ import print_function, with_statement, generators, \
+    unicode_literals
 import argparse
 import os
 import os.path
@@ -215,7 +217,7 @@ class CLI:
             else:
                 self.parser.error(
                     "'{0}' is not a regular file.".format(filepath))
-        except FileNotFoundError:
+        except OSError:
             fnf = True
 
         if fnf:
@@ -244,7 +246,7 @@ class CLI:
             else:
                 fmts = "'{0}' is not a regular file and cannot be overwritten."
                 self.parser.error(fmts.format(filepath))
-        except FileNotFoundError:
+        except OSError:
             pass
 
         fullpath = os.path.abspath(filepath)
@@ -257,7 +259,7 @@ class CLI:
             else:
                 fmts = "'{0}' is not a directory; invalid output file path"
                 self.parser.error(fmts.format(dirpath))
-        except FileNotFoundError:
+        except OSError:
             fmts = ("The directory '{0}' does not exist;"
                 " invalid output file path")
             self.parser.error(fmts.format(dirpath))
