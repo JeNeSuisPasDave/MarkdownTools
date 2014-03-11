@@ -8,7 +8,6 @@ Unit tests for the MarkdownMerge module, MarkdownMerge class.
 """
 
 import unittest
-import unittest.mock
 import os
 import os.path
 import re

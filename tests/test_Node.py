@@ -8,7 +8,6 @@ Unit tests for the Node class of of the mdmerge module.
 """
 
 import unittest
-import unittest.mock
 import os
 
 from mdmerge.node import Node
