@@ -1,3 +1,6 @@
+*.DS_Store
+src
+tests
 venv
 venv3*
 venv2*
