@@ -116,6 +116,8 @@ To run the tests:
 $ ./runtests.sh
 ~~~
 
+For Python 2 environments you will need to install the *mock* package (e.g., `pip install mock`).
+
 ## Contributing
 
 Similar to the contribution guidance from <https://github.com/github/markup>:
