@@ -47,16 +47,16 @@ Includes can be nested; that is, a file can include another file that itself inc
 
 Installation packages are available on PyPI. For Python 3 (3.3 or later) install the  `MarkdownTools`; for Python 2 (2.6 or later) install the `MarkdownTools2` package.
 
-Install the package using pip, like this:
+Install the package using pip, like this (in a Python 3 environment):
 
 ~~~bash
-$ pip install MarkdownTools
+$ pip install --pre MarkdownTools
 ~~~
 
-or
+or (in a Python 2 environment):
 
 ~~~bash
-$ pip install MarkdownTools2
+$ pip install --pre MarkdownTools2
 ~~~
 
 ## Usage
