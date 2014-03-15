@@ -1,9 +1,0 @@
-Title: This file includes one other
-
-# This file is only used if export type is odf
-
-This is the `ww.odf` file. It includes one other file.
-
-<<[www.mmd]
-
-And this is the last line of `ww.odf`.
