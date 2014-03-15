@@ -1,3 +1,7 @@
+# Copyright 2014 Dave Hein
+#
+# This file is part of MarkdownTools
+#
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -123,6 +127,36 @@ class CLI:
             if 1 != len(c):
                 return False
         return True
+
+    def _showVersion(self):
+        """Show the version only.
+
+        """
+
+        import mdmerge
+
+        print("mdmerge version {0}".format(mdmerge.__version__),
+            file=self.__stdout)
+        print("{0}. Licensed under {1}.".format(
+            mdmerge.__copyright__, mdmerge.__license__),
+            file=self.__stdout)
+
+
+    def _stdinIsTTY(self):
+        """Detect whether the stdin is mapped to a terminal console.
+
+        I found this technique in the answer by thg435 here:
+        http://stackoverflow.com/questions/13442574/how-do-i-determine-if-sys-stdin-is-redirected-from-a-file-vs-piped-from-another
+
+        """
+
+
+        mode = os.fstat(0).st_mode
+        if ((not stat.S_ISFIFO(mode)) # piped
+        and (not stat.S_ISREG(mode))): # redirected
+            return True
+        else: # not piped or redirected, so assume terminal input
+            return False
 
     def _validateArgs(self):
         """Validate the command line arguments and set fields based on those
@@ -264,32 +298,6 @@ class CLI:
                 " invalid output file path")
             self.parser.error(fmts.format(dirpath))
 
-    def _showVersion(self):
-        """Show the version only.
-
-        """
-
-        import mdmerge
-
-        print("mdmerge version {0}".format(mdmerge.__version__),
-            file=self.__stdout)
-
-    def _stdinIsTTY(self):
-        """Detect whether the stdin is mapped to a terminal console.
-
-        I found this technique in the answer by thg435 here:
-        http://stackoverflow.com/questions/13442574/how-do-i-determine-if-sys-stdin-is-redirected-from-a-file-vs-piped-from-another
-
-        """
-
-
-        mode = os.fstat(0).st_mode
-        if ((not stat.S_ISFIFO(mode)) # piped
-        and (not stat.S_ISREG(mode))): # redirected
-            return True
-        else: # not piped or redirected, so assume terminal input
-            return False
-
     def execute(self):
         """Merge the files.
 
@@ -340,6 +348,17 @@ class CLI:
             self.args = self.parser.parse_args(args)
             self._validateArgs()
 
+# -------------------------------------------------------------------------+
+# entry points for setuptools
+# -------------------------------------------------------------------------+
+
+def mdmerge_command():
+    try:
+        m = CLI()
+        m.parseCommandArgs(sys.argv[1:])
+        m.execute()
+    except KeyboardInterrupt:
+        print("")
 
 # -------------------------------------------------------------------------+
 # module's main method
