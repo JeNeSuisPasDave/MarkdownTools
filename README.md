@@ -45,15 +45,19 @@ Includes can be nested; that is, a file can include another file that itself inc
 
 ## Installation
 
-Installation packages are available on PyPI. For Python2 install the  `MarkdownTools2`; for Python 3 install the `MarkdownTools` package.
+Installation packages are available on PyPI. For Python 3 (3.3 or later) install the  `MarkdownTools`; for Python 2 (2.6 or later) install the `MarkdownTools2` package.
 
 Install the package using pip, like this:
 
 ~~~bash
-$ pip MarkdownTools
+$ pip install MarkdownTools
 ~~~
 
-The minimal required versions of Python are Python 3.3 and Python 2.6.
+or
+
+~~~bash
+$ pip install MarkdownTools2
+~~~
 
 ## Usage
 
@@ -114,7 +118,7 @@ $ ./runtests.sh
 
 ## Contributing
 
-Taking a page from <https://github.com/github/markup>:
+Similar to the contribution guidance from <https://github.com/github/markup>:
 
 1. Fork it.
 1. Create a branch (`git checkout -b my_MarkdownTools`)
@@ -122,3 +126,11 @@ Taking a page from <https://github.com/github/markup>:
 1. Push to the branch (`git push origin my_MarkdownTools`)
 1. Open a [Pull Request](http://github.com/jenesuispasdave/MarkdownTools/pulls)
 1. Enjoy a refreshing beverage and wait
+
+## License and Copyright
+
+MarkdownTools is licensed with the [Mozilla Public License Version 2.0][mpl]. 
+
+Copyright 2014 Dave Hein
+
+[mpl]: http://www.mozilla.org/MPL/2.0/
