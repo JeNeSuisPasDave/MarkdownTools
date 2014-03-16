@@ -96,7 +96,7 @@ options
 --outfile outputfile
 :   same as `-o`.
 
--
+`-`
 :   The input comes from STDIN.
 
 inputfiles
