@@ -82,6 +82,8 @@ class CLI:
         self.__bookTxtIsSpecial = False
         self.__wildcardExtensionIs = None
         self.__stdinIsBook = False
+        self.__ignoreTransclusions = False
+        self.__justRaw = False
 
         # main command
         #
@@ -96,6 +98,15 @@ class CLI:
             choices=['html','latex','lyx','opml','rtf','odf'],
             default='html',
             help="Guide include file wildcard substitution")
+        self.parser.add_argument(
+            "--ignore-transclusions", dest='ignoreTransclusions',
+            action='store_true',
+            default=False,
+            help="MultiMarkdown transclusion specifications are untouched")
+        self.parser.add_argument(
+            "--just-raw", dest='justRaw', action='store_true',
+            default=False,
+            help="Process only raw include specifications")
         self.parser.add_argument(
             "--leanpub", dest='leanPub', action='store_true',
             default=False,
@@ -139,7 +150,6 @@ class CLI:
         print("{0}. Licensed under {1}.".format(
             mdmerge.__copyright__, mdmerge.__license__),
             file=self.__stdout)
-
 
     def _stdinIsTTY(self):
         """Detect whether the stdin is mapped to a terminal console.
@@ -206,6 +216,10 @@ class CLI:
             self.__bookTxtIsSpecial = True
         if self.args.forceBook:
             self.__stdinIsBook = True
+        if self.args.ignoreTransclusions:
+            self.__ignoreTransclusions = True
+        if self.args.justRaw:
+            self.__justRaw = True;
 
     def _validateExportTarget(self, exportTarget):
         if exportTarget is not None:
@@ -317,7 +331,9 @@ class CLI:
         merger = MarkdownMerge(
             wildcardExtensionIs=self.__wildcardExtensionIs,
             bookTxtIsSpecial=self.__bookTxtIsSpecial,
-            stdinIsBook=self.__stdinIsBook)
+            stdinIsBook=self.__stdinIsBook,
+            ignoreTransclusions=self.__ignoreTransclusions,
+            justRaw=self.__justRaw)
         for ipath in self.__inputFilepaths:
             infileNode = None
             if CLI.__STDIN_FILENAME == ipath:

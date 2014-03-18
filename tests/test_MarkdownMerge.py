@@ -71,7 +71,8 @@ class MarkdownMergeTests(unittest.TestCase):
     def _mergeTest(self,
         infilePath, expectedfilePath=None, expectingStderr=False,
         wildcardExtensionIs=".html", bookTxtIsSpecial=False,
-        infileAsStdin=False, stdinIsBook=False):
+        infileAsStdin=False, stdinIsBook=False,
+        ignoreTransclusions=False, justRaw=False):
         """Take a single inputfile and produce a merged output file, then
         check the results against a file containing the expected content.
 
@@ -87,6 +88,9 @@ class MarkdownMergeTests(unittest.TestCase):
                 file.
             infileAsStdin: the CUT should access the infile via STDIN
             stdinIsBook: whether STDIN is treated as an index file
+            ignoreTransclusions: whether MultiMarkdown transclusion
+                specifications should be left untouched
+            justRaw: whether to only process raw include specifications
 
         """
 
@@ -105,7 +109,8 @@ class MarkdownMergeTests(unittest.TestCase):
                 MarkdownMergeTests.RedirectStdStreams(
                     stdin=infile, stdout=outfile, stderr=errfile):
                 cut = MarkdownMerge(
-                    wildcardExtensionIs, bookTxtIsSpecial, stdinIsBook)
+                    wildcardExtensionIs, bookTxtIsSpecial, stdinIsBook,
+                    ignoreTransclusions, justRaw)
                 infileNode = Node(os.path.dirname(infilePath))
                 cut.merge(infileNode, sys.stdout)
         else:
@@ -114,7 +119,8 @@ class MarkdownMergeTests(unittest.TestCase):
                 MarkdownMergeTests.RedirectStdStreams(
                     stdout=outfile, stderr=errfile):
                 cut = MarkdownMerge(
-                    wildcardExtensionIs, bookTxtIsSpecial, stdinIsBook)
+                    wildcardExtensionIs, bookTxtIsSpecial, stdinIsBook,
+                    ignoreTransclusions, justRaw)
                 infileNode = Node(filePath=infilePath)
                 cut.merge(infileNode, sys.stdout)
         if expectingStderr:
@@ -129,7 +135,8 @@ class MarkdownMergeTests(unittest.TestCase):
     def _mergeTry(self,
         infilePath, expectedfilePath=None, expectingStderr=False,
         wildcardExtensionIs=".html", bookTxtIsSpecial=False,
-        infileAsStdin=False, stdinIsBook=False):
+        infileAsStdin=False, stdinIsBook=False,
+        ignoreTransclusions=False, justRaw=False):
         """Take a single inputfile and produce a merged output file, then
         dump the output to stdout.
 
@@ -145,6 +152,9 @@ class MarkdownMergeTests(unittest.TestCase):
                 file.
             infileAsStdin: the CUT should access the infile via STDIN
             stdinIsBook: whether STDIN is treated as an index file
+            ignoreTransclusions: whether MultiMarkdown transclusion
+                specifications should be left untouched
+            justRaw: whether to only process raw include specifications
 
         """
 
@@ -161,7 +171,8 @@ class MarkdownMergeTests(unittest.TestCase):
                 MarkdownMergeTests.RedirectStdStreams(
                     stdin=infile, stdout=outfile, stderr=errfile):
                 cut = MarkdownMerge(
-                    wildcardExtensionIs, bookTxtIsSpecial, stdinIsBook)
+                    wildcardExtensionIs, bookTxtIsSpecial, stdinIsBook,
+                    ignoreTransclusions, justRaw)
                 infileNode = Node(
                     os.path.dirname(os.path.abspath(infilePath)))
                 cut.merge(infileNode, sys.stdout)
@@ -171,7 +182,8 @@ class MarkdownMergeTests(unittest.TestCase):
                 MarkdownMergeTests.RedirectStdStreams(
                     stdout=outfile, stderr=errfile):
                 cut = MarkdownMerge(
-                    wildcardExtensionIs, bookTxtIsSpecial, stdinIsBook)
+                    wildcardExtensionIs, bookTxtIsSpecial, stdinIsBook,
+                    ignoreTransclusions, justRaw)
                 infileNode = Node(filePath=infilePath)
                 cut.merge(infileNode, sys.stdout)
 
@@ -264,6 +276,16 @@ class MarkdownMergeTests(unittest.TestCase):
 
         self._mergeTest("t-c.mmd", "expected-t-c.mmd")
 
+    def testSingleIncludeFencedTransclusionIgnored(self):
+        """Test MarkdownMerge.merge().
+
+        A file with one MMD transclusion inside an unnamed code fence,
+        but with the transclusions ignored.
+
+        """
+
+        self._mergeTest("t-c.mmd", "t-c.mmd", ignoreTransclusions=True)
+
     def testSingleIncludeLeanpubCode(self):
         """Test MarkdownMerge.merge().
 
@@ -300,6 +322,26 @@ class MarkdownMergeTests(unittest.TestCase):
 
         self._mergeTest("t-c-named.mmd", "expected-t-c-named.mmd")
 
+    def testSingleIncludeRawDefault(self):
+        """Test MarkdownMerge.merge().
+
+        A file with one raw include specification. That spec should be
+        ignored by default.
+
+        """
+
+        self._mergeTest("r-a.mmd", "expected-r-a.mmd")
+
+    def testSingleIncludeRawJustRaw(self):
+        """Test MarkdownMerge.merge().
+
+        A file with one raw include specification. Because --just-raw
+        is specified, that spec should be processed.
+
+        """
+
+        self._mergeTest("r-a.mmd", "expected-r-aa.mmd", justRaw=True)
+
     def testSingleIncludeTransclusion(self):
         """Test MarkdownMerge.merge().
 
@@ -308,6 +350,16 @@ class MarkdownMergeTests(unittest.TestCase):
         """
 
         self._mergeTest("t-a.mmd", "expected-t-a.mmd")
+
+    def testSingleIncludeTransclusionIgnored(self):
+        """Test MarkdownMerge.merge().
+
+        A file with one MMD transclusion, but with the transclusion
+        ignored.
+
+        """
+
+        self._mergeTest("t-a.mmd", "t-a.mmd", ignoreTransclusions=True)
 
     def testChildToParentCycle(self):
         """Test MarkdownMerge.merge().
@@ -952,5 +1004,14 @@ class MarkdownMergeTests(unittest.TestCase):
 
         self._mergeTest(
             "t-w.mmd", "expected-w-rtf.mmd", wildcardExtensionIs=".rtf")
+
+    def testUnicodeSingleIncludeMarked(self):
+        """Test MarkdownMerge.merge().
+
+        A unicode (non-ascii) file with one Marked include.
+
+        """
+
+        self._mergeTest("u.mmd", "expected-u.mmd")
 
 # eof

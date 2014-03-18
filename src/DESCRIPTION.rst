@@ -108,6 +108,16 @@ Options
 ``--book``
 	Treat STDIN as an index file (a "book" file).
 
+``--ignore-transclusions``
+	Leave any MultiMarkdown transclusion specifications alone; do not include
+	the specified file. Useful if you want to mix Marked/LeanPub includes and
+	MultiMarkdown includes, but have MultiMarkdown handline the transclusions.
+
+``--just-raw``
+	Ignore all include specifications except for raw includes; useful for
+	processing the output of the Markdown processor to pick up the raw file include
+	specifications that should have passed through untouched.
+
 ``--leanpub``
 	Indicates that any input file named `book.txt` should be treated as a
 	LeanPub index file.

@@ -20,10 +20,14 @@ class MarkdownMerge:
     def __init__(self,
         wildcardExtensionIs=".html",
         bookTxtIsSpecial=False,
-        stdinIsBook=False):
+        stdinIsBook=False,
+        ignoreTransclusions=False,
+        justRaw=False):
         self.__wildcardExtensionIs = wildcardExtensionIs
         self.__bookTxtIsSpecial = bookTxtIsSpecial
         self.__stdinIsBook = stdinIsBook
+        self.__ignoreTransclusions = ignoreTransclusions
+        self.__justRaw = justRaw
 
         self.__reoCodeFence = re.compile("^\~\~\~[a-zA-Z0-9]+$")
         self.__reoFence = re.compile("^\~\~\~$")
@@ -35,6 +39,8 @@ class MarkdownMerge:
             "^(frontmatter\:|mainmatter:|backmatter:)$")
         self.__reoMarkdownHeading = re.compile("^(#+)\s")
         self.__reoMarkedInclude = re.compile("^<<\[(.+)\]$")
+        self.__reoMarkedRawInclude = re.compile("^<<\{(.+)\}$")
+        self.__reoMarkedRawIncludeInComment = re.compile("^<!-- <<\{(.+)\} -->$")
         self.__reoMmdTransclusion = re.compile("^\{\{(.+)\}\}$")
         self.__reoMultiMarkdownIndexMarker = re.compile("^#\s*merge$")
         self.__reoPathAndWildcardExtension = re.compile("^(.+)\.\*$")
@@ -143,7 +149,9 @@ class MarkdownMerge:
         # And the last line could be None, indicating end of file
         #
         if (5 == len(lines)):
-            if (self._stringIsNullOrWhitespace(lines[0])
+            if (not self.__justRaw
+            and not self.__ignoreTransclusions
+            and self._stringIsNullOrWhitespace(lines[0])
             and self._stringIsNullOrWhitespace(lines[4])
             and not self._stringIsNullOrWhitespace(lines[1])
             and not self._stringIsNullOrWhitespace(lines[2])
@@ -161,7 +169,9 @@ class MarkdownMerge:
         #   3. Another blank line.
         #
         if (3 == len(lines)):
-            if (self._stringIsNullOrWhitespace(lines[0])
+            if (not self.__justRaw
+            and not self.__ignoreTransclusions
+            and self._stringIsNullOrWhitespace(lines[0])
             and self._stringIsNullOrWhitespace(lines[2])):
                 spec = self._findTransclusion(lines[1])
                 if (None != spec):
@@ -174,9 +184,24 @@ class MarkdownMerge:
         #   3. Another blank line.
         #
         if (3 == len(lines)):
-            if (self._stringIsNullOrWhitespace(lines[0])
+            if (not self.__justRaw
+            and self._stringIsNullOrWhitespace(lines[0])
             and self._stringIsNullOrWhitespace(lines[2])):
                 spec = self._findMarkedInclude(lines[1])
+                if (None != spec):
+                    return spec, False, False
+
+        # look for Marked raw file include specification, which is:
+        #
+        #   1. A blank line, followed by
+        #   2. A line containing only `<<[filepath]`, followed by
+        #   3. Another blank line.
+        #
+        if (3 == len(lines)):
+            if (self.__justRaw
+            and self._stringIsNullOrWhitespace(lines[0])
+            and self._stringIsNullOrWhitespace(lines[2])):
+                spec = self._findMarkedRawIncludePostProcessing(lines[1])
                 if (None != spec):
                     return spec, False, False
 
@@ -188,7 +213,8 @@ class MarkdownMerge:
         #   3. Another blank line.
         #
         if (3 == len(lines)):
-            if (self._stringIsNullOrWhitespace(lines[0])
+            if (not self.__justRaw
+            and self._stringIsNullOrWhitespace(lines[0])
             and self._stringIsNullOrWhitespace(lines[2])):
                 spec = self._findLeanpubInclude(lines[1])
                 if (None != spec):
@@ -208,9 +234,7 @@ class MarkdownMerge:
         Returns:
             `None` if no file include specification is found in the line.
             If a file include specification is found in the line, then
-            the specified file path is returned. If the specified path used
-            a wildcard extension, the the wildcard is replaced with the
-            export extension.
+            the specified file path is returned.
 
         """
 
@@ -232,15 +256,55 @@ class MarkdownMerge:
         Returns:
             `None` if no file include specification is found in the line.
             If a file include specification is found in the line, then
-            the specified file path is returned. If the specified path used
-            a wildcard extension, the the wildcard is replaced with the
-            export extension.
+            the specified file path is returned.
 
         """
 
         m = self.__reoMarkedInclude.match(line)
         if not m:
             return None
+        filepath = m.group(1)
+        return filepath
+
+    def _findMarkedRawIncludePreProcessing(self, line):
+        """Parse the line looking for a Marked file include
+        specification.
+
+        Args:
+            line: The line of the input file to examine.
+
+        Returns:
+            `None` if no file include specification is found in the line.
+            If a file include specification is found in the line, then
+            the specified file path is returned.
+
+        """
+
+        m = self.__reoMarkedRawInclude.match(line)
+        if not m:
+            return None
+        filepath = m.group(1)
+        return filepath
+
+    def _findMarkedRawIncludePostProcessing(self, line):
+        """Parse the line looking for a Marked file include
+        specification.
+
+        Args:
+            line: The line of the input file to examine.
+
+        Returns:
+            `None` if no file include specification is found in the line.
+            If a file include specification is found in the line, then
+            the specified file path is returned.
+
+        """
+
+        m = self.__reoMarkedRawIncludeInComment.match(line)
+        if not m:
+            m = self.__reoMarkedRawInclude.match(line)
+            if not m:
+                return None
         filepath = m.group(1)
         return filepath
 
@@ -533,12 +597,30 @@ class MarkdownMerge:
                         buf5.popleft()
                         for x in range(2):
                             buf3.popleft()
+                    elif (not self.__justRaw
+                    and 3 == len(buf3)
+                    and self._findMarkedRawIncludePreProcessing(buf3[1])):
+                        # consuming the preceding two buffered lines,
+                        # then the blank line and wrap the raw include
+                        # in an html comment
+                        #
+                        for x in range(2):
+                            if None != x:
+                                self.buf.append(buf5.popleft())
+                        bline = buf5.popleft()
+                        if None != bline:
+                            self.buf.append(bline)
+                        self.buf.append("<!-- {0} -->".format(
+                            buf5.popleft().rstrip("\r\n")))
+                        for x in range(2):
+                            buf3.popleft()
                 if includePath:
                     # merge in the include file
                     #
                     absIncludePath = self._getAbsolutePath(
                         mainDocumentPath, includePath)
-                    absIncludePath = self._resolveWildcardExtension(absIncludePath)
+                    absIncludePath = self._resolveWildcardExtension(
+                        absIncludePath)
                     includedfileNode = infileNode.addChild(absIncludePath)
                     with io.open(absIncludePath, "r") as includedfile:
                         for deeperLine in self._mergedLines(
