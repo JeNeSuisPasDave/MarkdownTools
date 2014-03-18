@@ -9,3 +9,6 @@ __py_cache__
 node_modules
 site
 *.pyc
+
+CHANGELOG.html
+docs/specifications.html

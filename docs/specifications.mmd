@@ -6,6 +6,19 @@ Title: Specifications
 
 * error handling should be configurable ... output html error page, output system exit code, fail silently, et cetera.
 * handle missing files in CLI better
+* need tests for absolute file paths
+* need tests for home (`~`) file paths
+* need to handle post-processing includes: `<<{filepath}`
+* perhaps I should strip trailing line breaks! (i.e. included files only have one terminating `'\n'`)
+* I don't support MultiMarkdown's "Transclusion Base" metadata.
+
+    `<<{filepath}`
+
+    or
+
+    `<!-- <<{filepath} -->`
+
+    will be interpreted as a raw include of the filepath. All other include mechanisms will be suppressed.
 
 ## filepaths
 
@@ -23,7 +36,7 @@ If the first line of the file is `frontmatter:` then the file is recognized as a
 
 1. The remaining lines are treated as filepaths of files to be merged together.
 1. Blank lines are ignored
-1. Lines beginning with a # are ignored
+1. Lines beginning with a `#` are ignored
 1. Lines consisting of `frontmatter:`, `mainmatter:`, and `backmatter:` are ignored.
 1. Lines that specify invalid file syntax or specify files that don't exist will be ignored, except that a warning message will be written to stderr.
 1. Leading whitespace is ignored
@@ -37,7 +50,7 @@ If the first line of the file is `#merge` then the file is recognized a mmd_merg
 
 1. The remaining lines are treated as filepaths of files to be merged together.
 1. Blank lines are ignored
-1. Lines beginning with a # are ignored
+1. Lines beginning with a `#` are ignored
 1. Lines consisting of `frontmatter:`, `mainmatter:`, and `backmatter:` are ignored.
 1. Lines that specify invalid file syntax or specify files that don't exist will be ignored, except that a warning message will be written to stderr.
 1. Leading whitespace is significant in that each tab or every 4 spaces is treated as an increase in header level (so a single tab indent would change convert an H1 to an H2; a double tab indent would convert an H1 to an H3).
@@ -131,6 +144,16 @@ mdmerge [options] [-o outputfile] -
 
 `--book`
 :   Treat STDIN as an index file (a "book" file).
+
+`--ignore-transclusions`
+:   Leave any MultiMarkdown transclusion specifications alone; do not include
+the specified file. Useful if you want to mix Marked/LeanPub includes and
+MultiMarkdown includes, but have MultiMarkdown handline the transclusions.
+
+`--just-raw`
+:   Ignore all include specifications except for raw includes; useful for
+processing the output of the Markdown processor to pick up the raw file include
+specifications that should have passed through untouched.
 
 `--leanpub`
 :   Indicates that any input file named `book.txt` should be treated as a LeanPub index file.
