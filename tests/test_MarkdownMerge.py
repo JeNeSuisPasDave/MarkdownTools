@@ -9,6 +9,7 @@ Unit tests for the markdownMerge module, MarkdownMerge class.
 
 from __future__ import print_function, with_statement, generators, \
     unicode_literals
+
 import unittest
 import os
 import os.path
@@ -50,7 +51,7 @@ class MarkdownMergeTests(unittest.TestCase):
             sys.stderr = self.old_stderr
 
     def __init__(self, *args):
-        self.devnull = open(os.devnull, "w")
+        self.devnull = open(os.devnull, 'w')
         unittest.TestCase.__init__(self, *args)
         self.__root = os.path.dirname(__file__)
         self.__dataDir = os.path.join(self.__root, "data")
@@ -59,8 +60,8 @@ class MarkdownMergeTests(unittest.TestCase):
 
         import difflib
 
-        with io.open(filePathA) as fileA, \
-        io.open(filePathB) as fileB:
+        with io.open(filePathA, 'r') as fileA, \
+        io.open(filePathB, 'r') as fileB:
             fileTextA = fileA.read().splitlines(True)
             fileTextB = fileB.read().splitlines(True)
         difference = list(difflib.context_diff(fileTextA, fileTextB, n=1))
@@ -73,7 +74,8 @@ class MarkdownMergeTests(unittest.TestCase):
     def _mergeTest(self,
         infilePath, expectedfilePath=None, expectingStderr=False,
         wildcardExtensionIs=".html", bookTxtIsSpecial=False,
-        infileAsStdin=False, stdinIsBook=False):
+        infileAsStdin=False, stdinIsBook=False,
+        ignoreTransclusions=False, justRaw=False):
         """Take a single inputfile and produce a merged output file, then
         check the results against a file containing the expected content.
 
@@ -89,6 +91,9 @@ class MarkdownMergeTests(unittest.TestCase):
                 file.
             infileAsStdin: the CUT should access the infile via STDIN
             stdinIsBook: whether STDIN is treated as an index file
+            ignoreTransclusions: whether MultiMarkdown transclusion
+                specifications should be left untouched
+            justRaw: whether to only process raw include specifications
 
         """
 
@@ -101,22 +106,24 @@ class MarkdownMergeTests(unittest.TestCase):
         outfilePath = os.path.join(self.tempDirPath, "result.mmd")
         errfilePath = os.path.join(self.tempDirPath, "result.err")
         if infileAsStdin:
-            with io.open(outfilePath, "w") as outfile, \
-                io.open(errfilePath, "w") as errfile, \
-                io.open(infilePath, "r") as infile, \
+            with io.open(outfilePath, 'w') as outfile, \
+                io.open(errfilePath, 'w') as errfile, \
+                io.open(infilePath, 'r') as infile, \
                 MarkdownMergeTests.RedirectStdStreams(
                     stdin=infile, stdout=outfile, stderr=errfile):
                 cut = MarkdownMerge(
-                    wildcardExtensionIs, bookTxtIsSpecial, stdinIsBook)
+                    wildcardExtensionIs, bookTxtIsSpecial, stdinIsBook,
+                    ignoreTransclusions, justRaw)
                 infileNode = Node(os.path.dirname(infilePath))
                 cut.merge(infileNode, sys.stdout)
         else:
-            with io.open(outfilePath, "w") as outfile, \
-                io.open(errfilePath, "w") as errfile, \
+            with io.open(outfilePath, 'w') as outfile, \
+                io.open(errfilePath, 'w') as errfile, \
                 MarkdownMergeTests.RedirectStdStreams(
                     stdout=outfile, stderr=errfile):
                 cut = MarkdownMerge(
-                    wildcardExtensionIs, bookTxtIsSpecial, stdinIsBook)
+                    wildcardExtensionIs, bookTxtIsSpecial, stdinIsBook,
+                    ignoreTransclusions, justRaw)
                 infileNode = Node(filePath=infilePath)
                 cut.merge(infileNode, sys.stdout)
         if expectingStderr:
@@ -131,7 +138,8 @@ class MarkdownMergeTests(unittest.TestCase):
     def _mergeTry(self,
         infilePath, expectedfilePath=None, expectingStderr=False,
         wildcardExtensionIs=".html", bookTxtIsSpecial=False,
-        infileAsStdin=False, stdinIsBook=False):
+        infileAsStdin=False, stdinIsBook=False,
+        ignoreTransclusions=False, justRaw=False):
         """Take a single inputfile and produce a merged output file, then
         dump the output to stdout.
 
@@ -147,6 +155,9 @@ class MarkdownMergeTests(unittest.TestCase):
                 file.
             infileAsStdin: the CUT should access the infile via STDIN
             stdinIsBook: whether STDIN is treated as an index file
+            ignoreTransclusions: whether MultiMarkdown transclusion
+                specifications should be left untouched
+            justRaw: whether to only process raw include specifications
 
         """
 
@@ -157,31 +168,33 @@ class MarkdownMergeTests(unittest.TestCase):
         outfilePath = os.path.join(self.tempDirPath, "result.mmd")
         errfilePath = os.path.join(self.tempDirPath, "result.err")
         if infileAsStdin:
-            with io.open(outfilePath, "w") as outfile, \
-                io.open(errfilePath, "w") as errfile, \
-                io.open(infilePath, "r") as infile, \
+            with io.open(outfilePath, 'w') as outfile, \
+                io.open(errfilePath, 'w') as errfile, \
+                io.open(infilePath, 'r') as infile, \
                 MarkdownMergeTests.RedirectStdStreams(
                     stdin=infile, stdout=outfile, stderr=errfile):
                 cut = MarkdownMerge(
-                    wildcardExtensionIs, bookTxtIsSpecial, stdinIsBook)
+                    wildcardExtensionIs, bookTxtIsSpecial, stdinIsBook,
+                    ignoreTransclusions, justRaw)
                 infileNode = Node(
                     os.path.dirname(os.path.abspath(infilePath)))
                 cut.merge(infileNode, sys.stdout)
         else:
-            with io.open(outfilePath, "w") as outfile, \
-                io.open(errfilePath, "w") as errfile, \
+            with io.open(outfilePath, 'w') as outfile, \
+                io.open(errfilePath, 'w') as errfile, \
                 MarkdownMergeTests.RedirectStdStreams(
                     stdout=outfile, stderr=errfile):
                 cut = MarkdownMerge(
-                    wildcardExtensionIs, bookTxtIsSpecial, stdinIsBook)
+                    wildcardExtensionIs, bookTxtIsSpecial, stdinIsBook,
+                    ignoreTransclusions, justRaw)
                 infileNode = Node(filePath=infilePath)
                 cut.merge(infileNode, sys.stdout)
 
-        with io.open(outfilePath, "r") as outfile:
+        with io.open(outfilePath, 'r') as outfile:
             for line in outfile:
                 print(line, end='')
         if 0 != os.stat(errfilePath).st_size:
-            with io.open(errfilePath, "r") as errfile:
+            with io.open(errfilePath, 'r') as errfile:
                 for line in errfile:
                     print(line, end='')
 
@@ -239,8 +252,8 @@ class MarkdownMergeTests(unittest.TestCase):
         infilePath = os.path.join(self.__dataDir, "empty.mmd")
         outfilePath = os.path.join(self.tempDirPath, "result.mmd")
         errfilePath = os.path.join(self.tempDirPath, "result.err")
-        with io.open(outfilePath, "w") as outfile, \
-            io.open(errfilePath, "w") as errfile, \
+        with io.open(outfilePath, 'w') as outfile, \
+            io.open(errfilePath, 'w') as errfile, \
             MarkdownMergeTests.RedirectStdStreams(
                 stdout=outfile, stderr=errfile):
             cut = MarkdownMerge(".html")
@@ -266,6 +279,16 @@ class MarkdownMergeTests(unittest.TestCase):
         """
 
         self._mergeTest("t-c.mmd", "expected-t-c.mmd")
+
+    def testSingleIncludeFencedTransclusionIgnored(self):
+        """Test MarkdownMerge.merge().
+
+        A file with one MMD transclusion inside an unnamed code fence,
+        but with the transclusions ignored.
+
+        """
+
+        self._mergeTest("t-c.mmd", "t-c.mmd", ignoreTransclusions=True)
 
     def testSingleIncludeLeanpubCode(self):
         """Test MarkdownMerge.merge().
@@ -303,6 +326,26 @@ class MarkdownMergeTests(unittest.TestCase):
 
         self._mergeTest("t-c-named.mmd", "expected-t-c-named.mmd")
 
+    def testSingleIncludeRawDefault(self):
+        """Test MarkdownMerge.merge().
+
+        A file with one raw include specification. That spec should be
+        ignored by default.
+
+        """
+
+        self._mergeTest("r-a.mmd", "expected-r-a.mmd")
+
+    def testSingleIncludeRawJustRaw(self):
+        """Test MarkdownMerge.merge().
+
+        A file with one raw include specification. Because --just-raw
+        is specified, that spec should be processed.
+
+        """
+
+        self._mergeTest("r-a.mmd", "expected-r-aa.mmd", justRaw=True)
+
     def testSingleIncludeTransclusion(self):
         """Test MarkdownMerge.merge().
 
@@ -311,6 +354,16 @@ class MarkdownMergeTests(unittest.TestCase):
         """
 
         self._mergeTest("t-a.mmd", "expected-t-a.mmd")
+
+    def testSingleIncludeTransclusionIgnored(self):
+        """Test MarkdownMerge.merge().
+
+        A file with one MMD transclusion, but with the transclusion
+        ignored.
+
+        """
+
+        self._mergeTest("t-a.mmd", "t-a.mmd", ignoreTransclusions=True)
 
     def testChildToParentCycle(self):
         """Test MarkdownMerge.merge().
@@ -955,5 +1008,14 @@ class MarkdownMergeTests(unittest.TestCase):
 
         self._mergeTest(
             "t-w.mmd", "expected-w-rtf.mmd", wildcardExtensionIs=".rtf")
+
+    def testUnicodeSingleIncludeMarked(self):
+        """Test MarkdownMerge.merge().
+
+        A unicode (non-ascii) file with one Marked include.
+
+        """
+
+        self._mergeTest("u.mmd", "expected-u.mmd")
 
 # eof

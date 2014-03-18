@@ -9,6 +9,7 @@ Unit tests for the cli module, CLI class.
 
 from __future__ import print_function, with_statement, generators, \
     unicode_literals
+
 import unittest
 import mock
 import os
@@ -49,14 +50,9 @@ class CoreCLITests(unittest.TestCase):
     #       that the unit tests do not trash the hotp.data file of the user
     #       running the tests.
     #
-    # NOTE: some of these tests use a mock for _getKeyStretches to force a much
-    #       faster key stretch algorithm than is used in the normal execution
-    #       mode. This is done so the unit tests are fast and developers won't
-    #       be tempted to bypass the (otherwise slow) tests.
-    #
 
     def __init__(self, *args):
-        self.devnull = open(os.devnull, "w")
+        self.devnull = open(os.devnull, 'w')
         unittest.TestCase.__init__(self, *args)
         self.__root = os.path.dirname(__file__)
         self.__dataDir = os.path.join(self.__root, "data")
@@ -65,8 +61,8 @@ class CoreCLITests(unittest.TestCase):
 
         import difflib
 
-        fileTextA = open(filePathA).read().splitlines(True)
-        fileTextB = open(filePathB).read().splitlines(True)
+        fileTextA = io.open(filePathA, 'r').read().splitlines(True)
+        fileTextB = io.open(filePathB, 'r').read().splitlines(True)
         difference = list(difflib.context_diff(fileTextA, fileTextB, n=1))
         diffLineCount = len(difference)
         if 0 == diffLineCount:
@@ -121,8 +117,8 @@ class CoreCLITests(unittest.TestCase):
     def testParseExportTargetHtml(self):
         """Test CLI.parseCommandArgs().
 
-        Specify unrecognized flag.
-        Expecting an error.
+        Specify html as the export target and be certain
+        the properties are set correctly.
 
         """
 
@@ -138,6 +134,8 @@ class CoreCLITests(unittest.TestCase):
         self.assertIsNone(cut.args.outFile)
         self.assertFalse(cut.args.showVersion)
         self.assertFalse(cut.args.forceBook)
+        self.assertFalse(cut.args.ignoreTransclusions)
+        self.assertFalse(cut.args.justRaw)
 
         self.assertFalse(cut._CLI__abandonCLI)
         self.assertTrue(cut._CLI__useStdin)
@@ -147,11 +145,13 @@ class CoreCLITests(unittest.TestCase):
         self.assertFalse(cut._CLI__bookTxtIsSpecial)
         self.assertEqual(expectedExt, cut._CLI__wildcardExtensionIs)
         self.assertFalse(cut._CLI__stdinIsBook)
+        self.assertFalse(cut._CLI__ignoreTransclusions)
+        self.assertFalse(cut._CLI__justRaw)
 
     def testParseExportTargetInvalid(self):
         """Test CLI.parseCommandArgs().
 
-        Specify unrecognized flag.
+        Specify an invalid target.
         Expecting an error.
 
         """
@@ -166,8 +166,8 @@ class CoreCLITests(unittest.TestCase):
     def testParseExportTargetLatex(self):
         """Test CLI.parseCommandArgs().
 
-        Specify unrecognized flag.
-        Expecting an error.
+        Specify latex as the export target and be certain
+        the properties are set correctly.
 
         """
 
@@ -182,8 +182,8 @@ class CoreCLITests(unittest.TestCase):
     def testParseExportTargetLyx(self):
         """Test CLI.parseCommandArgs().
 
-        Specify unrecognized flag.
-        Expecting an error.
+        Specify lyx as the export target and be certain
+        the properties are set correctly.
 
         """
 
@@ -198,8 +198,8 @@ class CoreCLITests(unittest.TestCase):
     def testParseExportTargetOdf(self):
         """Test CLI.parseCommandArgs().
 
-        Specify unrecognized flag.
-        Expecting an error.
+        Specify odf as the export target and be certain
+        the properties are set correctly.
 
         """
 
@@ -214,8 +214,8 @@ class CoreCLITests(unittest.TestCase):
     def testParseExportTargetOpml(self):
         """Test CLI.parseCommandArgs().
 
-        Specify unrecognized flag.
-        Expecting an error.
+        Specify opml as the export target and be certain
+        the properties are set correctly.
 
         """
 
@@ -230,8 +230,8 @@ class CoreCLITests(unittest.TestCase):
     def testParseExportTargetRtf(self):
         """Test CLI.parseCommandArgs().
 
-        Specify unrecognized flag.
-        Expecting an error.
+        Specify rtf as the export target and be certain
+        the properties are set correctly.
 
         """
 
@@ -242,6 +242,35 @@ class CoreCLITests(unittest.TestCase):
         cut.parseCommandArgs(args)
         self.assertEqual(tgt, cut.args.exportTarget)
         self.assertEqual(expectedExt, cut._CLI__wildcardExtensionIs)
+
+    def testParseIgnoreTransclusions(self):
+        """test CLI.parseCommandArgs().
+
+        Specify that transclusions should be ignored and be certain
+        the properties are set correctly.
+
+        """
+
+        args = ("--ignore-transclusions", "-")
+        cut = CLI()
+        cut.parseCommandArgs(args)
+        self.assertTrue(cut.args.ignoreTransclusions)
+        self.assertTrue(cut._CLI__ignoreTransclusions)
+
+    def testParseJustRaw(self):
+        """test CLI.parseCommandArgs().
+
+        Specify that only raw include specifications should be process;
+        all other include specifications should be ignore. Be certain
+        the properties are set correctly.
+
+        """
+
+        args = ("--just-raw", "-")
+        cut = CLI()
+        cut.parseCommandArgs(args)
+        self.assertTrue(cut.args.justRaw)
+        self.assertTrue(cut._CLI__justRaw)
 
     def testParseLeanpub(self):
         """Test CLI.parseCommandArgs().

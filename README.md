@@ -47,16 +47,16 @@ Includes can be nested; that is, a file can include another file that itself inc
 
 Installation packages are available on PyPI. For Python 3 (3.3 or later) install the  `MarkdownTools`; for Python 2 (2.6 or later) install the `MarkdownTools2` package.
 
-Install the package using pip, like this:
+Install the package using pip, like this (in a Python 3 environment):
 
 ~~~bash
-$ pip install MarkdownTools
+$ pip install --pre MarkdownTools
 ~~~
 
-or
+or (in a Python 2 environment):
 
 ~~~bash
-$ pip install MarkdownTools2
+$ pip install --pre MarkdownTools2
 ~~~
 
 ## Usage
@@ -71,35 +71,44 @@ The command line looks like this:
 options
 :   One or more of `--book`, `--export-target`, `-h`, `--help`, `--leanpub`, `--version`.
 
---book
+`--book`
 :   Treat STDIN as an index file (a "book" file).
 
---export-target [html|latex|lyx|opml|rtf|odf]
+`--export-target [html|latex|lyx|opml|rtf|odf]`
 :   Indicates the ultimate output target of the markdown processor, but primarily impacts wildcard substitution in Marked inclusion.
 
--h
+`-h`
 :   Help information
 
---help
+`--help`
 :   Same as `-h`.
 
+`--ignore-transclusions`
+:   Leave any MultiMarkdown transclusion specifications alone; do not include
+the specified file. Useful if you want to mix Marked/LeanPub includes and
+MultiMarkdown includes, but have MultiMarkdown handline the transclusions.
 
---leanpub
+`--just-raw`
+:   Ignore all include specifications except for raw includes; useful for
+processing the output of the Markdown processor to pick up the raw file include
+specifications that should have passed through untouched.
+
+`--leanpub`
 :   Indicates that any input file named `book.txt` should be treated as a LeanPub index file.
 
---version
+`--version`
 :   Gives the version information about the utility.
 
--o outputfile
+`-o outputfile`
 :   The filepath in which to store the merged text. If not specified, then STDOUT is used.
 
---outfile outputfile
+`--outfile outputfile`
 :   same as `-o`.
 
--
+`-`
 :   The input comes from STDIN.
 
-inputfiles
+`inputfiles`
 :   A list of space separated input files that can be merged together. If multiple files are given, they are treated as if they were specified in a LeanPub index file.
 
 ## Development
