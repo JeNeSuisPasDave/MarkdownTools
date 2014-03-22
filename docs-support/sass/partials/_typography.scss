@@ -1,0 +1,229 @@
+// pad the body to set it off from the container
+//
+body {
+	padding: 1em;
+  font-family: $txt-font-family;
+  font-weight: $txt-font-weight;
+  line-height: $txt-line-height;
+}
+
+p {
+  padding-top: 0.5em;
+  padding-bottom: 0.5em;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: $hdr-font-family;
+  font-weight: $hdr-font-weight;
+  margin-bottom: 0.5em;
+  margin-top: 0.5em;
+  padding-top: 0.5em;
+  padding-bottom: 0.25em;
+}
+
+h1 {
+  font-size: $h1-font-size;
+  border-bottom-color: black;
+  border-bottom-style: double;
+  border-bottom-width: thick;
+}
+
+h2 {
+  font-size: $h2-font-size;
+  border-bottom-color: black;
+  border-bottom-style: solid;
+  border-bottom-width: thin;
+}
+
+h3 {
+  font-size: $h3-font-size;
+}
+
+h4 {
+  font-size: $h4-font-size;
+}
+
+em {
+  font-style: italic;
+}
+
+strong {
+  font-weight: $bold;
+}
+
+code {
+  font-family: $code-font-family;
+  font-weight: $code-font-weight;
+}
+
+@if $isPrintMedia {
+	// for PRINT wrap the code lines (because we don't have interactive horizontal
+	// scrollbars on the printed page!)
+	//
+	 pre code {
+		white-space: pre-wrap;
+	}
+}
+
+pre {
+  background: whitesmoke;
+  margin-left: 1em;
+	margin-right: 1em;
+	padding: 0.25em;
+  display: inline-block;
+	@if $isPrintMedia {
+		// for PRINT don't create horizontal scroll bars
+		//
+		display: block;
+		overflow: visible;
+		word-break: normal;
+	}
+	@else {
+		overflow: auto;
+	}
+	width: (58em / 60em) * 100%;
+	min-width: 24.5em;
+}
+
+blockquote {
+  margin-top: 1em;
+  margin-bottom: 1em;
+  margin-left: 2em;
+  font-style: italic;
+}
+
+table {
+  border: 1px solid rgba(0,0,0,0.25);
+  border-collapse: collapse;
+  display: table;
+  empty-cells: hide;
+  table-layout: fixed;
+  font-size: 0.75em;
+}
+
+caption {
+  display: table-caption;
+  font-weight: 700;
+}
+
+col {
+  display: table-column;
+}
+
+colgroup {
+  display: table-column-group;
+}
+
+tbody {
+  display: table-row-group;
+}
+
+tfoot {
+  display: table-footer-group;
+}
+
+thead {
+  display: table-header-group;
+}
+
+td, th {
+  display: table-cell;
+  padding: 0.25em;
+}
+
+tr {
+  display: table-row;
+}
+
+th {
+  font-weight: $bold;
+}
+
+table thead {
+  background: rgba(0,0,0,0.15);
+  border: 1px solid rgba(0,0,0,0.15);
+  border-bottom: 1px solid rgba(0,0,0,0.2);
+}
+
+table tbody {
+  background: rgba(0,0,0,0.05);
+}
+
+table tfoot {
+  background: rgba(0,0,0,0.15);
+  border: 1px solid rgba(0,0,0,0.15);
+  border-top: 1px solid rgba(0,0,0,0.2);
+}
+
+table tr:nth-child(odd), table th:nth-child(odd), table td:nth-child(odd) {
+  background: rgba(255,255,255,0.06);
+}
+
+table tr:nth-child(even), table td:nth-child(even) {
+  background: rgba(200,200,200,0.25);
+}
+
+
+// based on replies and comment in this Stack Overflow article:
+// http://stackoverflow.com/questions/501671/superscript-in-css-only
+//
+sup {
+  font-size: .75em;
+  line-height: $txt-sup-line-height;
+  vertical-align: baseline;
+  position: relative;
+  top: -1.0 * $txt-sup-line-height;
+}
+
+// based on replies and comment in this Stack Overflow article:
+// http://stackoverflow.com/questions/501671/superscript-in-css-only
+//
+sub {
+  font-size: .75em;
+  line-height: $txt-sup-line-height;
+  vertical-align: baseline;
+  position: relative;
+  top: 1.0 * $txt-sup-line-height;
+}
+
+ul {
+  list-style-type: disc;
+  list-style-position: outside;
+  padding-left: 2em;
+  ul {
+    list-style-type: circle;
+    padding-left: 2em;
+    ul {
+      list-style-type: square;
+      padding-left: 2em;
+    }
+  }
+}
+
+ol {
+  list-style-type: decimal;
+  list-style-position: outside;
+  padding-left: 2em;
+  ol {
+    list-style-type: lower-alpha;
+    padding-left: 2em;
+    ol {
+      list-style-type: lower-roman;
+      padding-left: 2em;
+    }
+  }
+}
+
+dt {
+  font-weight: $bold;
+}
+
+dd {
+  padding-left: 2em;
+  padding-top: 0.25em;
+  padding-bottom: 0.25em;
+}
+
+a.backref {
+  text-decoration: none;
+}

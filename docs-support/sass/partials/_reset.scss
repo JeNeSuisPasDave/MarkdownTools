@@ -1,0 +1,19 @@
+// basic reset
+//
+@include global-reset;
+
+// apply a natural box layout to all elements.
+// Here 'natural' means the margin is not included in box height or width.
+//
+*, *:after, *:before {
+	@include box-sizing(border-box)
+}
+
+body {
+	@if $isPrintMedia {
+	  font-size: 12px;
+	}
+	@else {
+	  font-size: 16px * $sizing-factor;
+	}
+}

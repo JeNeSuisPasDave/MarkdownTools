@@ -1,26 +1,32 @@
-Title: Specifications
+Title: mdmerge Specifications
 
-# Specifications
+[stoc]: #spectoc "Section Contents" class=backref
 
-## issues
+# mdmerge Specifications [&#x21d1;][rtoc] [spectoc]
+
+* [unresolved issues][specissues]
+* [filepaths][specpaths]
+* [Interpreting index files][specidxs]
+    - [LeanPub index files][]
+    - [mmd_merge index files][]
+* [Interpreting include declarations][specdecl]
+    - [MultiMarkdown transclusion syntax][]
+    - [Marked inclusion syntax][]
+    - [LeanPub code inclusion syntax][]
+* [Command Line Syntax][speccli]
+    - [options][]
+
+## unresolved issues [&#x21d1;][stoc] [specissues]
+
+*Note: These are just issues I've thought about addressing; no active plans to fix these at the moment.*
 
 * error handling should be configurable ... output html error page, output system exit code, fail silently, et cetera.
 * handle missing files in CLI better
-* need tests for absolute file paths
-* need tests for home (`~`) file paths
-* need to handle post-processing includes: `<<{filepath}`
-* perhaps I should strip trailing line breaks! (i.e. included files only have one terminating `'\n'`)
-* I don't support MultiMarkdown's "Transclusion Base" metadata.
+* need unit tests for absolute file paths
+* need unit tests for home (`~`) file paths
+* perhaps it should strip trailing line breaks? (i.e. so that included files only have one terminating `'\n'`)
 
-    `<<{filepath}`
-
-    or
-
-    `<!-- <<{filepath} -->`
-
-    will be interpreted as a raw include of the filepath. All other include mechanisms will be suppressed.
-
-## filepaths
+## filepaths [&#x21d1;][stoc] [specpaths]
 
 Unless otherwise specified, all file path are specified as:
 
@@ -28,11 +34,13 @@ Unless otherwise specified, all file path are specified as:
 * Home (starts with `~/`) in which the tilde means the users home directory
 * Relative (starts with something other than `/` or `~/`) to the file that includes them.
 
-## Interpreting index files
+## Interpreting index files [&#x21d1;][stoc] [specidxs]
 
 ### LeanPub index files
 
-If the first line of the file is `frontmatter:` then the file is recognized as a LeanPub index file. The processing rules for __LeanPub index files__ are:
+If the first line of the file is `frontmatter:` then the file is recognized as a LeanPub index file. If the filename is `book.txt` and the CLI option `--leanpub` was used, then the file is recognized as a Leanpub index file (whether or not it contains a `frontmatter:` line).
+
+The processing rules for **LeanPub index files** are:
 
 1. The remaining lines are treated as filepaths of files to be merged together.
 1. Blank lines are ignored
@@ -40,52 +48,55 @@ If the first line of the file is `frontmatter:` then the file is recognized as a
 1. Lines consisting of `frontmatter:`, `mainmatter:`, and `backmatter:` are ignored.
 1. Lines that specify invalid file syntax or specify files that don't exist will be ignored, except that a warning message will be written to stderr.
 1. Leading whitespace is ignored
-2. A blank line is inserted between merged files
+1. A blank line is inserted between merged files
 
-From the command line, the flag `--leanpub` will signal that any file called `book.txt` will be treated as a LeanPub index file.
+The filepaths in the index file can be absolute, relative to the index file, and can use the `~` syntax for the user's home directory.
 
 ### mmd_merge index files
 
-If the first line of the file is `#merge` then the file is recognized a mmd_merge index file. The processing rules for __mmd_merge index files__ are:
+If the first line of the file is `#merge` then the file is recognized a mmd_merge index file.
+
+The processing rules for **mmd_merge index files** are:
 
 1. The remaining lines are treated as filepaths of files to be merged together.
 1. Blank lines are ignored
 1. Lines beginning with a `#` are ignored
 1. Lines consisting of `frontmatter:`, `mainmatter:`, and `backmatter:` are ignored.
 1. Lines that specify invalid file syntax or specify files that don't exist will be ignored, except that a warning message will be written to stderr.
-1. Leading whitespace is significant in that each tab or every 4 spaces is treated as an increase in header level (so a single tab indent would change convert an H1 to an H2; a double tab indent would convert an H1 to an H3).
-2. A blank line is inserted between merged files
+1. Leading whitespace is significant in that each tab or every 4 spaces is treated as an increase in header level (so a single tab indent would change convert an h1 to an h2; a double tab indent would convert an h1 to an h3).
+1. A blank line is inserted between merged files
     
     From the insource documentation of the mmd_merge utility:
 
     > This script is designed to allow you to use different files to store parts of a larger MultiMarkdown document, making it easier to reorganize the document if you so desire. Each line consists of the url or filename of the next document. If the line is indented, each tab (or 4 spaces) will increase the header level of the document by 1 (similar to the `Base Header Level` metadata). Blank lines are ignored. Lines starting with `#` are treated as comments. Only metadata from the first file would be properly handles, since it would be the only metadata at the top of the new "virtual" document.
 
+The filepaths in the index file can be absolute, relative to the index file, and can use the `~` syntax for the user's home directory.
 
-## Interpreting include declarations
+## Interpreting include declarations [&#x21d1;][stoc] [specdecl]
 
 ### MultiMarkdown transclusion syntax
 
-The transclusion syntax was introduced in MultiMarkdown 4.5. An include declaration is matched as a __MultiMarkdown file transclusion__ if it has the following form:
+The transclusion syntax was introduced in MultiMarkdown 4.5. An include declaration is matched as a **MultiMarkdown file transclusion** if it has the following form:
 
 1. A blank line, followed by 
-2. A line containing only `{{filepath}}`, followed by 
-3. Another blank line.
+1. A line containing only `{{filepath}}`, followed by 
+1. Another blank line.
+
+The filepath can be absolute, relative to the root file, and can use the `~` syntax for the user's home directory.
 
 Files included in this manner will themselves be examined for further include declarations or as index files.
 
 Another format matching MultiMarkdown file transclusion is:
 
 1. A blank line, followed by 
-2. A code fence start (e.g. `~~~` or `~~~python` or similar, followed by
-3. A line containing only `{{filepath}}`, followed by 
-4. A code fence termination (e.g. `~~~`), followed by
-5. Another blank line.
+1. A code fence start (e.g. `` ``` `` or `` ```python `` or similar, followed by
+1. A line containing only `{{filepath}}`, followed by 
+1. A code fence termination (e.g. `` ``` ``), followed by
+1. Another blank line.
+
+The filepath can be absolute, relative to the root file, and can use the `~` syntax for the user's home directory.
 
 Files matched in this manner will not be examined for further include declarations or index file specification. They will be included as is, including trailing line breaks.
-
-__ISSUE:__ perhaps I should strip trailing line breaks!
-
-__ISSUE:__ I don't support Transclusion Base
 
 In any case the filename may be specified with a wildcard file extension (e.g., `name.*`). In this case MultiMarkdown will substitute an extension by the export format. This utility will substitute the wildcard in one of these ways:
 
@@ -99,7 +110,7 @@ In any case the filename may be specified with a wildcard file extension (e.g., 
 
 ### Marked inclusion syntax
 
-A declarations is matched as a __Marked inclusion__ if it has the form:
+A declaration is matched as a **Marked inclusion** if it has the form:
 
 1. A blank line, followed by 
 2. A line containing only `<<[filepath]`, followed by 
@@ -107,13 +118,29 @@ A declarations is matched as a __Marked inclusion__ if it has the form:
 
 The filepath can be absolute, relative to the root file, and can use the `~` syntax for the user's home directory.
 
+### Marked raw file inclusion syntax
+
+A declaration is matched as a **Marked raw file inclusion** if it has the form:
+
+1. A blank line, followed by
+2. A line containing only `<<{filepath}`, followed by
+3. Another blank line.
+
+The filepath can be absolute, relative to the root file, and can use the `~` syntax for the user's home directory.
+
+Raw file processing is affected by the `--just-raw` CLI option. If not specified, then all raw file specifications lines are converted to HTML comment lines ... like `<!-- <<{filepath} -->`. However, if the `--just-raw` CLI option is specified, then **only** raw file specifications are process (including those inside HTML comments) and other kinds of include specifications are ignore.
+
+The specified file is just inserted as is into the output text. Raw files are not processed for additional include statements.
+
 ### LeanPub code inclusion syntax
 
-A declaration is matched as __LeanPub code inclusion__ if it has the form:
+A declaration is matched as **LeanPub code inclusion** if it has the form:
 
 1. A blank line, followed by 
 2. A line containing only `<<(filepath)`, followed by 
 3. Another blank line.
+
+The filepath can be absolute, relative to the root file, and can use the `~` syntax for the user's home directory.
 
 An declaration is also matched as LeanPub code inclusion if it has the form:
 
@@ -121,29 +148,31 @@ An declaration is also matched as LeanPub code inclusion if it has the form:
 2. A line containing only `<<[code title](filepath)`, followed by 
 3. Another blank line.
 
-In that case, however, the text in `[code title]` is not used as a caption (which is what LeanPub would do); it is ignored.
+The filepath can be absolute, relative to the root file, and can use the `~` syntax for the user's home directory.
+
+In this form, however, the text in `[code title]` is *not* used as a caption (although that is what LeanPub would do); it is ignored.
 
 Note: Unlike Marked inclusion, wildcard file extension substitution is not performed with LeanPub code inclusion.
 
-## Command Line Syntax
+## Command Line Syntax [&#x21d1;][stoc] [speccli]
 
 The command line looks like this:
 
-~~~nohighlight
+```no-highlight
 mdmerge [options] [-o outputfile] inputfiles
 mdmerge [options] [-o outputfile] -
-~~~
+```
 
-### Options
+### options
 
 `options`
-:   One or more of `--export-target`, `--book`, `--leanpub`, `--version`, `--help`, `-h`, `-?`.
-
-`--export-target [html|latex|lyx|opml|rtf|odf]`
-:   Indicates the ultimate output target of the markdown processor, but primarily impacts wildcard substitution in Marked inclusion.
+:   One or more of `--book`, `--export-target`, `--ignore-transclusions`, `--just-raw`, `--leanpub`, `--version`, `--help`, `-h`, `-?`.
 
 `--book`
 :   Treat STDIN as an index file (a "book" file).
+
+`--export-target [html|latex|lyx|opml|rtf|odf]`
+:   Indicates the ultimate output target of the markdown processor, but primarily impacts wildcard substitution in Marked inclusion.
 
 `--ignore-transclusions`
 :   Leave any MultiMarkdown transclusion specifications alone; do not include

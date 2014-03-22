@@ -1,0 +1,249 @@
+Title: Git procedures for the project
+
+[gtoc]: #gittoc "Section Contents" class=backref
+
+# Git procedures for the project [&#x21d1;][rtoc] [gittoc]
+
+* [Branch naming][gitbra]
+* [Tag naming][gittag]
+* [Creating the local respository][gitlcl]
+* [Setting your prompt to show the current branch][gitcur]
+* [Topic branch workflow][gittop]
+    - [Create the topic branch][]
+    - [Commit early and often][]
+    - [Rebase the topic branch before merging][]
+    - [Merge the topic branch][]
+    - [Delete the topic branch][]
+    - [Push the commit][]
+* [Merging changes between python2 and python3 branches][gitmrg]
+* [Making a release][gitrel]
+
+These are the procedures I use for managing the local and remote git repos for this project. I use the command line for all my git work on this project.
+
+If you primarily use a GUI tool, then much of this might not be helpful. However, if you want to contribute, or you just want to understand what I could possibly have been thinking when I set all this up, then you should still read these sections:
+
+* [Branch naming][]
+* [Tag naming][]
+
+## Branch naming [&#x21d1;][gtoc] [gitbra]
+
+The main production code lives in these branches. There are stable branches:
+
+* `master`
+* `python2/stable`
+* `python3/stable`
+
+Those contain the 1.0, 1.1, etc. versions.
+
+There are the current development branches:
+
+* `master.dev`
+* `python2/dev`
+* `python3/dev`
+
+They contain the 1.0rc1, 1.0rc2, 1.1a, 1.1b, etc. versions.
+
+Topic branches are used to work on a specific feature or defect. They are the same as a stable or dev branch, appended with a short topic name that always starts with "`.t-`". For example, the branch `python3/dev.t-addFailTests` would be the name of a topic branch that would be used to create some additional tests for some illconditioned inputs or other specific failure cases; the branch `python3/stable.t-issue123` would be the name of a topic branch for a fix to address a particular issue in a released version of the code.
+
+## Tag naming [&#x21d1;][gtoc] [gittag]
+
+Tags are assigned when a stable or dev version is released. The tag name has the form "v{version}/{branch-root}", like this:
+
+* `v1.0rc3/master`
+* `v1.0rc3/python2`
+* `v1.0rc3/python3`
+
+The message on the tag is similar to the name. The message has the form "{version} {branch-root}". So a command to add a tag might look like:
+
+```bash
+$ git tag -a v1.0rc4/master -m "v1.0rc4 master"
+```
+
+## Creating the local respository [&#x21d1;][gtoc] [gitlcl]
+
+This command creates the local repository and adds a local branch "`master`" that tracks the remote `origin\master` branch.
+
+```bash
+$ git clone https://github.com/JeNeSuisPasDave/MarkdownTools.git
+```
+
+You'll need to create local branches for any other branch you work in, and make sure they track the corresponding remote branch. For example:
+
+```bash
+$ git branch --track python2/dev origin/python2/dev
+$ git branch --track python3/dev origin/python3/dev
+```
+
+The `git branch -vv` command will show you the remote branch, if any, assocated with each local branch.
+
+## Setting your prompt to show the current branch [&#x21d1;][gtoc] [gitcur]
+
+It is helpful to know what branch you are in and whether the branch is dirty. If you are using a bash shell, then you can add this bit of code to your `.bash_profile`. It will show the current branch (if any) and a dirty flag (`*`) in cyan, the current directory in green, and then move the cursor to the start of the next line.
+
+```bash
+# produce a '*' if the git status is 'dirty'
+#
+function parse_git_dirty {
+[[ $(git status 2> /dev/null | tail -n1) \
+  != "nothing to commit, working directory clean" ]] \
+&& echo "*"
+}
+
+# produce the current git branch name
+#
+function parse_git_branch {
+git branch --no-color 2> /dev/null \
+  | sed -e '/^[^*]/d' -e "s/* \(.*\)/[\1$(parse_git_dirty)]/"
+}
+
+# Black       0;30     Dark Gray     1;30
+# Blue        0;34     Light Blue    1;34
+# Green       0;32     Light Green   1;32
+# Cyan        0;36     Light Cyan    1;36
+# Red         0;31     Light Red     1;31
+# Purple      0;35     Light Purple  1;35
+# Brown       0;33     Yellow        1;33
+# Light Gray  0;37     White         1;37
+#
+PS1="\w\$ "
+PS1="\[\033[1;36m\]\$(parse_git_branch)\[\033[1;32m\]\w\$\[\033[0m\]\n"
+export PS1
+
+```
+
+
+## Topic branch workflow [&#x21d1;][gtoc] [gittop]
+
+Let's suppose you want to fix a reported issue. You start looking at the code in the python3/stable branch.
+
+### Create the topic branch
+
+The first thing you *should* do is to create a topic branch. Like this:
+
+```bash
+$ git checkout -b python3/stable.t-issue45
+```
+
+But often you just start working until you realize are working in a main branch and it is dirty and you neglected to create the topic branch. That's OK because you can *still* use that same command to create the topic branch (as long as you haven't done a `git add` or `git commit` you are free to create the topic branch without any trouble).
+
+### Commit early and often
+
+A topic branch gives you lots of freedom and lots of privacy. Unless you push it to the remote, no one else is going to see what you are doing. Therefore there are no constraints to how often you can make commits or how stable you think the code is that you are committing. Feel free to commit as often as you'd like. And when you commit, make a nice commit comment that explains what you are doing and why you are doing it. Don't worry about how the commit message reads; just give it as much information as you can so that when you read it again later next week you'll have some idea what you were talking about.
+
+Besides the intrinsic value of commits as checkpoints and signposts in the history of the code, why is it OK to make lots of little commits and to commit breaking changes or partial work? Because you are going to clean all that up before you merge your change back into the main production or dev branches.
+
+### Rebase the topic branch before merging
+
+The goal is to do a single commit from the topic branch back to the main branch, and to make that commit a fast-forward commit, not a merge. Doing so requires two preparation steps:
+
+1. Rebase from the main branch
+2. Squash topic branch commits
+
+The main branch might have changed since the point at which you created the topic branch. If those changes are in the same files you've been changing in the topic branch, then a merge needs to happen. And the best place for the merge to happen is in the topic branch. That is because we don't want to see those merge commits in the main branch, and because doing the merge in the topic branch gives you time to test the merged code and be sure everything is still working, or correct any problems the merge introduced.
+
+#### Rebase from the main branch
+
+To bring the main branch changes into the topic branch, you want to rebase. Assuming that we have a topic branch called `python3/dev.t-something`, the commands looks like:
+
+```bash
+$ git checkout python3/dev
+$ git fetch origin
+$ git merge --ff-only origin/python3/dev
+$ git checkout python3/dev.t-something
+$ git rebase python3/dev
+```
+
+If `git rebase` stops prematurely due to a merge conflict, you can resolve the conflict (make sure to update the index with `git add --all .`) and then use the command `git rebase --continue` to proceed with the remaining steps of the rebase. If the merge conflict needs to be addressed later or in some other way, then you can use the command `git rebase --abort` to roll back the rebase.
+
+#### Squash topic branch commits
+
+Your topic branch will contain, typically, a lot of commits. But you don't want to pollute the main branch with all those little changes. To address this you squash the commits together into a single commit with a single lucid and complete message. The commands to do that look like:
+
+```bash
+$ git checkout python3/dev.t-something
+$ git rebase --interactive python3/dev
+```
+
+What that does it throw you into `vim`, or whatever your default editor is, with a list of commits, each beginning with the word "pick". You need to change each and every one of those "pick"s to a "squash" or an "s", then save the "file". You'll next be presented with a combined checking message, a concatenation of all the commit messages from all the commits in the topic branch back to the beginning of the main branch. Edit that text until it describes the change you are about to merge into the main branch.
+
+### Merge the topic branch
+
+Then you use the following commands (branch names changes as appropriate) to merge the topic branch change into the main branch:
+
+```bash
+$ git checkout python3/dev
+$ git merge --ff-only python3/dev.t-something
+```
+
+If a fast forward merge cannot be done, then you'll need to update the main branch and rebase the topic branch (as per step 1); then repeat step 2. Again, we want to do merging and conflict resolution on a topic branch, not the main branch.
+
+### Push the commit
+
+Push the commit to the remote repository. With the main branch still checked out, use the following command.
+
+```bash
+$ git push origin
+```
+
+### Delete the topic branch
+
+Once the changes are squashed and merged back into the main branch, there is no reason to keep the topic branch around, so you should delete it.
+
+```bash
+$ git branch -d python3/dev.t-something
+```
+
+If you had pushed the topic branch to the remote repository (perhaps you were collaborating with other developers on it) then you can delete the remote branch with this command.
+
+```bash
+$ git push origin :python3/dev.t-something
+```
+
+## Merging changes between python2 and python3 branches [&#x21d1;][gtoc] [gitmrg]
+
+Typically you will work primarily with one version of Python, with one branch of the code. Once everything is working with that verion of Python, you will port the changes to the branch associated with the other version of Python. I recommend starting with Python 3 for anything that is not specifically a Python 2 issue.
+
+When it comes time to port the changes from the Python 3 branch to the Python 2 branch, I use a different command for injecting a new file versus modifying an existing file.
+
+To insert a new file from the Python 3 branch into the Python 2 branch, you can do something like this:
+
+```bash
+$ git show python3/dev.t-something:tests/data/interesting-new-issue.md tests/data/interesting-new-issue.md
+```
+
+To merge changes to an existing file, you can use this command:
+
+```bash
+$ git checkout -p python3/dev.t-something tests/test_MarkdownMerge.py
+```
+
+That will produce a patch and then interactively prompt you to accept or reject each difference. `y` to accept, `n` to reject, and `a` to accept every remaining difference. Sometimes the difference displayed is actually several short differences; if you only want a subset of those smaller differences, then `s` will split the bundled differences and let you select just the ones you want. Other options are available.
+
+Of course, deleting a file is straightforward:
+
+```bash
+$ git rm tests/data/no-longer-used.mmd
+```
+
+## Making a release [&#x21d1;][gtoc] [gitrel]
+
+When a release is ready to publish, the following steps are required:
+
+1. Both the `python2/*` and `python3/*` branches unit tests pass.
+2. The version number in `__init__.py` is changed to match the new release.
+3. The `CHANGELOG.md` file in the `master` or `master.dev` branch has been updated to reflect the changes.
+4. All the local commits to the three main branches have been pushed to the remote repository.
+5. The `makedist.sh` and `uploaddist.sh` scripts have been run for both the `python2/*` and `python3/*` branches.
+
+With the successful completion of those steps, the release is nearly complete. The only remaining step is to tag the release commits. The best way to do that is to checkout each main branch (dev or stable) and tag each, then push to the remote repository. For example:
+
+```bash
+$ git checkout python2/stable
+$ git tag -a v1.0.2/python2 -m "v1.0.2 python2"
+$ git checkout python3/stable
+$ git tag -a v1.0.2/python3 -m "v1.0.2 python3"
+$ git checkout main/stable
+$ git tag -a v1.0.2/main -m "v1.0.2 main"
+$ git push --tags origin
+```
+

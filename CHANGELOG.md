@@ -1,5 +1,11 @@
 # Change Log 
 
+## 1.0
+
+* 30 March 2014
+* First stable release
+* Added developer docs. (To build them you'll need some tools, see `docs-support` and `docs` folders in the `master` branch.) If you want to contribute, I recommend building and reading through the docs.
+
 ## 1.0rc5
 
 * 30 March 2014

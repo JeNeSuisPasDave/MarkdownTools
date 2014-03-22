@@ -1,0 +1,89 @@
+Title: tools to install on dev system
+
+# Tools to install on OS X Mavericks development system
+
+These are the tools that need to be installed to generate and maintain the documentation for this project.
+
+## MultiMarkdown
+
+Download the [MultiMarkdown installer](http://fletcherpenney.net/multimarkdown/download/) and run it. MultiMarkdown is used to convert Markdown text files to HTML files. I installed the package from `MultiMarkdown-Mac-4.5.2.zip`.
+
+## node.js
+
+Download the install kit from the [node.js website](http://nodejs.org/) and run it. I installed `node-v0.10.22.pkg`.
+
+## Ruby
+
+Install `rbenv` via MacPorts, and then install `ruby-build` and `rbenv-gem-rehash` via git:
+
+~~~bash
+$ sudo port install rbenv
+$ git clone https://github.com/sstephenson/ruby-build.git ~/.rbenv/plugins/ruby-build
+$ git clone https://github.com/sstephenson/rbenv-gem-rehash.git ~/.rbenv/plugins/rbenv-gem-rehash
+~~~
+
+Run `rbenv init -` and put the resulting script into your `.bash_profile` or equivalent shell initialization script. Then reopen a terminal window to make `rbenv` available (if you get an error trying to run `completions/rbenv.bash`, just comment it out). Install a recent stable version of Ruby and set it to be the global. Then update it.
+
+~~~bash
+$ rbenv install 2.1.1
+$ rbenv global 2.1.1
+$ gem update --system
+~~~
+
+Install Sass and Compass as per the instructions below, then revert ruby to the system version (assuming your Mac had one; OS X Mavericks does) and use rbenv to just set the ruby+sass+compass version to the docs-support directory, like so:
+
+~~~bash
+$ rbenv global system
+$ cd doc-support # path may vary depending on your current working directory
+$ rbenv local 2.1.1
+~~~
+
+## Sass
+
+[Sass](http://sass-lang.com/) is a CSS preprocessor. To install it, use 
+the command line, like so:
+
+~~~bash
+$ gem update --system
+$ gem install sass
+$ sass -v
+~~~
+
+When I did this in March 2014, the version installed was 3.3.4.
+
+## Compass
+
+[Compass](http://compass-style.org/) provides some very useful Sass mixins.
+To install it, use the command line, __not__ with _Run as administrator_,
+like so:
+
+~~~bash
+$ gem update --system
+$ gem install compass
+$ compass -v
+~~~
+
+When I did this in March 2014, the version installed was 0.12.4.
+
+## highlight.js
+
+[highlight.js](http://highlightjs.org/) provides syntax highlighting for
+text inside `<pre><code>` blocks. Version is 8.0.
+
+I made a custom package that highlights:
+
+* Bash
+* CSS
+* Diff
+* Haml
+* HTML, XML
+* HTTP
+* JSON
+* JavaScript
+* Markdown
+* Perl
+* Python
+* Ruby
+* Tex
+
+The highlight.js package consist of some JavaScript and a set of CSS stylesheets. I put the JavaScript in the `./js` directory and the stylesheets in the `./styles` directory (which is reserved for highlight.js; Sass generated styles are in the `./css` directory).

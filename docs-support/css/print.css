@@ -1,0 +1,293 @@
+/* Welcome to Compass. Use this file to define print styles.
+ * Import this file using the following HTML or equivalent:
+ * <link href="/stylesheets/print.css" media="print" rel="stylesheet" type="text/css" /> */
+html, body, div, span, applet, object, iframe,
+h1, h2, h3, h4, h5, h6, p, blockquote, pre,
+a, abbr, acronym, address, big, cite, code,
+del, dfn, em, img, ins, kbd, q, s, samp,
+small, strike, strong, sub, sup, tt, var,
+b, u, i, center,
+dl, dt, dd, ol, ul, li,
+fieldset, form, label, legend,
+table, caption, tbody, tfoot, thead, tr, th, td,
+article, aside, canvas, details, embed,
+figure, figcaption, footer, header, hgroup,
+menu, nav, output, ruby, section, summary,
+time, mark, audio, video {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  font: inherit;
+  font-size: 100%;
+  vertical-align: baseline;
+}
+
+html {
+  line-height: 1;
+}
+
+ol, ul {
+  list-style: none;
+}
+
+table {
+  border-collapse: collapse;
+  border-spacing: 0;
+}
+
+caption, th, td {
+  text-align: left;
+  font-weight: normal;
+  vertical-align: middle;
+}
+
+q, blockquote {
+  quotes: none;
+}
+q:before, q:after, blockquote:before, blockquote:after {
+  content: "";
+  content: none;
+}
+
+a img {
+  border: none;
+}
+
+article, aside, details, figcaption, figure, footer, header, hgroup, menu, nav, section, summary {
+  display: block;
+}
+
+*, *:after, *:before {
+  -webkit-box-sizing: border-box;
+  -moz-box-sizing: border-box;
+  box-sizing: border-box;
+}
+
+body {
+  font-size: 12px;
+}
+
+body {
+  padding: 1em;
+  font-family: Verdana, Tahoma, sans-serif;
+  font-weight: 400;
+  line-height: 1.4em;
+}
+
+p {
+  padding-top: 0.5em;
+  padding-bottom: 0.5em;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: Baskerville, Garamond, Palatino, "Palatino Linotype", "Hoefler Text", "Times New Roman", serif;
+  font-weight: 600;
+  margin-bottom: 0.5em;
+  margin-top: 0.5em;
+  padding-top: 0.5em;
+  padding-bottom: 0.25em;
+}
+
+h1 {
+  font-size: 1.728em;
+  border-bottom-color: black;
+  border-bottom-style: double;
+  border-bottom-width: thick;
+}
+
+h2 {
+  font-size: 1.44em;
+  border-bottom-color: black;
+  border-bottom-style: solid;
+  border-bottom-width: thin;
+}
+
+h3 {
+  font-size: 1.2em;
+}
+
+h4 {
+  font-size: 1em;
+}
+
+em {
+  font-style: italic;
+}
+
+strong {
+  font-weight: 600;
+}
+
+code {
+  font-family: "Source Code Pro", Consolas, "Bitstream Vera Sans Mono", "Andale Mono", Monaco, "DejaVu Sans Mono", "Lucida Console", monospace;
+  font-weight: 400;
+}
+
+pre code {
+  white-space: pre-wrap;
+}
+
+pre {
+  background: whitesmoke;
+  margin-left: 1em;
+  margin-right: 1em;
+  padding: 0.25em;
+  display: inline-block;
+  display: block;
+  overflow: visible;
+  word-break: normal;
+  width: 96.66667%;
+  min-width: 24.5em;
+}
+
+blockquote {
+  margin-top: 1em;
+  margin-bottom: 1em;
+  margin-left: 2em;
+  font-style: italic;
+}
+
+table {
+  border: 1px solid rgba(0, 0, 0, 0.25);
+  border-collapse: collapse;
+  display: table;
+  empty-cells: hide;
+  table-layout: fixed;
+  font-size: 0.75em;
+}
+
+caption {
+  display: table-caption;
+  font-weight: 700;
+}
+
+col {
+  display: table-column;
+}
+
+colgroup {
+  display: table-column-group;
+}
+
+tbody {
+  display: table-row-group;
+}
+
+tfoot {
+  display: table-footer-group;
+}
+
+thead {
+  display: table-header-group;
+}
+
+td, th {
+  display: table-cell;
+  padding: 0.25em;
+}
+
+tr {
+  display: table-row;
+}
+
+th {
+  font-weight: 600;
+}
+
+table thead {
+  background: rgba(0, 0, 0, 0.15);
+  border: 1px solid rgba(0, 0, 0, 0.15);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.2);
+}
+
+table tbody {
+  background: rgba(0, 0, 0, 0.05);
+}
+
+table tfoot {
+  background: rgba(0, 0, 0, 0.15);
+  border: 1px solid rgba(0, 0, 0, 0.15);
+  border-top: 1px solid rgba(0, 0, 0, 0.2);
+}
+
+table tr:nth-child(odd), table th:nth-child(odd), table td:nth-child(odd) {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+table tr:nth-child(even), table td:nth-child(even) {
+  background: rgba(200, 200, 200, 0.25);
+}
+
+sup {
+  font-size: .75em;
+  line-height: 0.46667em;
+  vertical-align: baseline;
+  position: relative;
+  top: -0.46667em;
+}
+
+sub {
+  font-size: .75em;
+  line-height: 0.46667em;
+  vertical-align: baseline;
+  position: relative;
+  top: 0.46667em;
+}
+
+ul {
+  list-style-type: disc;
+  list-style-position: outside;
+  padding-left: 2em;
+}
+ul ul {
+  list-style-type: circle;
+  padding-left: 2em;
+}
+ul ul ul {
+  list-style-type: square;
+  padding-left: 2em;
+}
+
+ol {
+  list-style-type: decimal;
+  list-style-position: outside;
+  padding-left: 2em;
+}
+ol ol {
+  list-style-type: lower-alpha;
+  padding-left: 2em;
+}
+ol ol ol {
+  list-style-type: lower-roman;
+  padding-left: 2em;
+}
+
+dt {
+  font-weight: 600;
+}
+
+dd {
+  padding-left: 2em;
+  padding-top: 0.25em;
+  padding-bottom: 0.25em;
+}
+
+a.backref {
+  text-decoration: none;
+}
+
+body {
+  margin-left: 0em;
+  margin-right: auto;
+  max-width: 60em;
+  min-width: 30em;
+}
+
+.backref {
+  font-size: 2rem;
+  float: right;
+}
+
+a.backref {
+  display: none;
+}

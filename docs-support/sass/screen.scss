@@ -1,0 +1,14 @@
+// Set the media type
+//
+$isScreenMedia: true;
+$isPrintMedia: false;
+
+// mixins, functions, variables
+//
+@import "partials/base";
+
+// partials
+//
+@import "partials/reset";
+@import "partials/typography";
+@import "partials/layout";

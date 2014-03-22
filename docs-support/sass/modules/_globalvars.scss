@@ -1,0 +1,41 @@
+// Font weights
+//
+$light: 100;
+$regular: 400;
+$bold: 600;
+
+// sizing
+//
+$sizing-factor: 1.2;
+
+// text font
+//
+$txt-font-family: "Lucida Grande", "Lucida Sans Unicode", "Lucida Sans",
+	Verdana, Tahoma, sans-serif;
+@if $isPrintMedia {
+	// for PRINT the "Lucida ..." fonts will be rendered too heavily (everything
+	// looks bold); so we just drop those fonts from the stack.
+	//
+	$txt-font-family: Verdana, Tahoma, sans-serif;
+}
+$txt-font-weight: $regular;
+$txt-line-height: 1.4em;
+$txt-sup-line-height: $txt-line-height / 3;
+
+// heading font
+//
+$hdr-font-family: Baskerville, Garamond, Palatino, "Palatino Linotype",
+  "Hoefler Text", "Times New Roman", serif;
+$hdr-font-weight: $bold;
+$h1-font-size: 1.2em * 1.2 * 1.2;
+$h2-font-size: 1.2em * 1.2;
+$h3-font-size: 1.2em;
+$h4-font-size: 1em;
+$h5-font-size: 1em;
+$h6-font-size: 1em;
+
+// code font
+//
+$code-font-family: "Source Code Pro", Consolas, "Bitstream Vera Sans Mono",
+  "Andale Mono", Monaco, "DejaVu Sans Mono", "Lucida Console", monospace;
+$code-font-weight: $regular;

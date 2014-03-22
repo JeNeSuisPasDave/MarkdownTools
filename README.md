@@ -1,18 +1,20 @@
 # MarkdownTools
 
-MarkdownTools is a collection of command line utilities for processing Markdown text files. At the moment the collection includes only one utility: *mdmerge*. Over time additional utilities will be added to support Markdown workflows. 
+MarkdownTools is a collection of command line utilities for processing Markdown text files. At the moment the collection includes only one utility: **mdmerge**. Over time additional utilities will be added to support Markdown workflows. 
+
+Current stable version is 1.0. See the *Installation* section below for guidance.
 
 ## mdmerge
 
-mdmerge is a command line utility that produces a single Markdown document by merging a set of Markdown documents. The merge can be accomplished by expanding *include* specifications found in the input files, by concatenating a list of files found in an index file, or both.
+mdmerge is a command line utility that produces a single Markdown document by merging a set of Markdown documents. The merge can be accomplished by expanding *include specifications* found in the input files, by concatenating a list of files found in an index file, or both.
 
 ### Synergy with Marked
 
-Brett Terpstra's [Marked 2][] application is a GUI product that runs on OS X; it watches Markdown text files and displays the formatted output; it has extensive support for multi-file Markdown documents. *Marked* is my tool of choice for viewing formatted Markdown. I use it whenever I'm creating or reviewing Markdown content on my OS X machine. The invaluable multi-file document support in *Marked* is what drove me to create *mdmerge*.
+Brett Terpstra's [Marked 2][] application is a GUI product that runs on OS X; it watches Markdown text files and displays the formatted output; it has extensive support for multi-file Markdown documents. *Marked* is my tool of choice for viewing formatted Markdown. I use it whenever I'm creating or reviewing Markdown content on my OS X machine. The invaluable multi-file document support in *Marked* is what drove me to create **mdmerge**.
 
 [Marked 2]: http://marked2app.com
 
-*mdmerge* brings that same multi-file Markdown document processing to the command line. It is useful in any automated scripting environment where Markdown is processed. For example, I use it in automated build scripts (e.g., using gmake or Grunt) to produce documentation for the software I'm building. It is cross-platform; you can pre-process the Markdown files on any common OS that has a recent version of Python.
+**mdmerge** brings that same multi-file Markdown document processing to the command line. It is useful in any automated scripting environment where Markdown is processed. For example, I use it in automated build scripts (e.g., using gmake or Grunt) to produce documentation for the software I'm building. It is cross-platform; you can pre-process the Markdown files on any common OS that has a recent version of Python.
 
 ### Markdown and include file syntax support
 
@@ -61,7 +63,7 @@ This example shows an include specification for source code:
 
 End of example.</code></pre>
 
-This example shows a normal transclusion and a sourcde code transclusion, MultiMarkdown style:
+This example shows a normal MultiMarkdown transclusion and a source code transclusion:
 
 <pre><code class="markdown">This demonstrates MultiMarkdown transclusions:
 
@@ -73,7 +75,7 @@ This example shows a normal transclusion and a sourcde code transclusion, MultiM
 
 End of example.</code></pre>
 
-And of course there are raw file includes (`<<{raw.html}`) and index files. Read the documentation linked in the previous section or look at `docs/specifications.mmd` in one of the code branches.
+And of course there are raw file includes (`<<{raw.html}`) and index files. Read the documentation linked in the previous section or look at `docs/specifications.mmd` in the `master` branch.
 
 ## Installation
 
@@ -82,26 +84,30 @@ Installation packages are available on PyPI. For Python 3 (3.3 or later) install
 Install the package using pip, like this (in a Python 3 environment):
 
 ~~~bash
-$ pip install --pre MarkdownTools
+$ pip install MarkdownTools
 ~~~
 
 or (in a Python 2 environment):
 
 ~~~bash
-$ pip install --pre MarkdownTools2
+$ pip install MarkdownTools2
 ~~~
+
+If you are upgrading an existing version, use `pip install --upgrade`.
+
+You may need to use `sudo` if you are installing into the system's native Python environment.
 
 ## Usage
 
 The command line looks like this:
 
-    mdmerge [options] [-o outputfile] inputfiles
+    mdmerge [options] [-o outputfile] inputfile [inputFile ...]
     mdmerge [options] [-o outputfile] -
 
 ### Command arguments
 
 options
-:   One or more of `--book`, `--export-target`, `-h`, `--help`, `--leanpub`, `--version`.
+:   One or more of `--book`, `--export-target`, `-h`, `--help`, `--ignore-transclusions`, `--just-raw` `--leanpub`, `--version`.
 
 `--book`
 :   Treat STDIN as an index file (a "book" file).
@@ -140,7 +146,7 @@ specifications that should have passed through untouched.
 `-`
 :   The input comes from STDIN.
 
-`inputfiles`
+`inputfile`
 :   A list of space separated input files that can be merged together. If multiple files are given, they are treated as if they were specified in a LeanPub index file.
 
 ## Development
@@ -169,6 +175,8 @@ Similar to the contribution guidance from <https://github.com/github/markup>:
 1. Push to the branch (`git push origin my_MarkdownTools`)
 1. Open a [Pull Request](http://github.com/jenesuispasdave/MarkdownTools/pulls)
 1. Enjoy a refreshing beverage and wait
+
+Contributors should read the **developer documentation**, available in the `docs` directory of the `master` branch. To produce a nice pretty HTML version of those docs, install the doc tools (see the `docs-support` directory) and run the `make-docs` script in the `docs` directroy.
 
 ## License and Copyright
 

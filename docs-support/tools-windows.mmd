@@ -1,0 +1,58 @@
+﻿Title: tools to install on dev system
+
+# Tools to install on VS2013 development system
+
+## MultiMarkdown
+
+Download the [MultiMarkdown installer](http://fletcherpenney.net/multimarkdown/download/) 
+and run it. MultiMarkdown is used to convert Markdown text files to HTML files.
+I installed `MMD-windows-4.4.2.exe`.
+
+## node.js
+
+Download the install kit from the [node.js website](http://nodejs.org/) and 
+run it. I installed `node-v0.10.23-x64.msi`.
+
+## Ruby
+
+Download the [Windows Ruby Installer](http://rubyinstaller.org/downloads/) and
+run it. I used the 64-bit stable version `rubyinstaller-2.0.0-p353-x64.exe`.
+
+During the install, make sure that you __check__ both:
+
+* Add Ruby executables to your PATH
+* Associate .rb and .rbw files with this Ruby installation
+
+## SASS
+
+[Sass](http://sass-lang.com/) is a CSS preprocessor. To install it, use 
+the command line, 
+__not__ with _Run as administrator_, like so:
+
+	gem update --system
+	gem install sass -v 3.2.12
+
+
+## Compass
+
+[Compass](http://compass-style.org/) provides some very useful Sass mixins.
+To install it, use the command line, __not__ with _Run as administrator_,
+like so:
+
+	gem update --system
+	gem install compass -v 0.12.2
+
+## highlight.js
+
+[highlight.js](http://highlightjs.org/) provides syntax highlighting for
+text inside `<pre><code>` blocks. Version is 8.0.
+
+I made a custom package that highlights:
+
+* C#
+* C++
+* CSS
+* HTML, XML
+* HTTP
+* JSON
+* JavaScript

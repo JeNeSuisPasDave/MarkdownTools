@@ -1,0 +1,4 @@
+#! /bin/sh
+#
+compass compile .
+
