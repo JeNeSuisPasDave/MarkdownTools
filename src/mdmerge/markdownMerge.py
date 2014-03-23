@@ -29,8 +29,8 @@ class MarkdownMerge:
         self.__ignoreTransclusions = ignoreTransclusions
         self.__justRaw = justRaw
 
-        self.__reoCodeFence = re.compile("^\~\~\~[a-zA-Z0-9]+$")
-        self.__reoFence = re.compile("^\~\~\~$")
+        self.__reoCodeFence = re.compile("^([~]{3,}|[`]{3,})[a-zA-Z0-9]+$")
+        self.__reoFence = re.compile("^([~]{3,}|[`]{3,})$")
         self.__reoIndexComment = re.compile("^#")
         self.__reoLeanpubCodeInclude = re.compile("^<<\[.*\]\((.+)\)$")
         self.__reoLeanpubInclude = re.compile("^<<\((.+)\)$")
