@@ -280,6 +280,26 @@ class MarkdownMergeTests(unittest.TestCase):
 
         self._mergeTest("t-c.mmd", "expected-t-c.mmd")
 
+    def testSingleIncludeFencedTransclusionLong(self):
+        """Test MarkdownMerge.merge().
+
+        A file with one MMD transclusion inside an unnamed code fence (where
+        the fence is 6 ticks, not 3)
+
+        """
+
+        self._mergeTest("t-c-long.mmd", "expected-t-c-long.mmd")
+
+    def testSingleIncludeFencedTransclusionTildes(self):
+        """Test MarkdownMerge.merge().
+
+        A file with one MMD transclusion inside an unnamed code fence (where
+        the fence is tildes (~))
+
+        """
+
+        self._mergeTest("t-c2.mmd", "expected-t-c2.mmd")
+
     def testSingleIncludeFencedTransclusionIgnored(self):
         """Test MarkdownMerge.merge().
 
@@ -289,6 +309,27 @@ class MarkdownMergeTests(unittest.TestCase):
         """
 
         self._mergeTest("t-c.mmd", "t-c.mmd", ignoreTransclusions=True)
+
+    def testSingleIncludeFencedTransclusionIgnoredLong(self):
+        """Test MarkdownMerge.merge().
+
+        A file with one MMD transclusion inside an unnamed code fence,
+        but with the transclusions ignored. The fence is 6 ticks not 3.
+
+        """
+
+        self._mergeTest(
+            "t-c-long.mmd", "t-c-long.mmd", ignoreTransclusions=True)
+
+    def testSingleIncludeFencedTransclusionIgnoredTildes(self):
+        """Test MarkdownMerge.merge().
+
+        A file with one MMD transclusion inside an unnamed code fence,
+        but with the transclusions ignored. The fence is tildes not ticks.
+
+        """
+
+        self._mergeTest("t-c2.mmd", "t-c2.mmd", ignoreTransclusions=True)
 
     def testSingleIncludeLeanpubCode(self):
         """Test MarkdownMerge.merge().
@@ -325,6 +366,26 @@ class MarkdownMergeTests(unittest.TestCase):
         """
 
         self._mergeTest("t-c-named.mmd", "expected-t-c-named.mmd")
+
+    def testSingleIncludeNamedFencedTransclusionLong(self):
+        """Test MarkdownMerge.merge().
+
+        A file with one MMD transclusion inside a named code fence. fence
+        is longer than three backticks.
+
+        """
+
+        self._mergeTest("t-c-long-named.mmd", "expected-t-c-long-named.mmd")
+
+    def testSingleIncludeNamedFencedTransclusionTildes(self):
+        """Test MarkdownMerge.merge().
+
+        A file with one MMD transclusion inside a named code fence. fence
+        is tildes.
+
+        """
+
+        self._mergeTest("t-c2-named.mmd", "expected-t-c2-named.mmd")
 
     def testSingleIncludeRawDefault(self):
         """Test MarkdownMerge.merge().
