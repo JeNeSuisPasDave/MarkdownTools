@@ -1,5 +1,10 @@
 # Change Log 
 
+## 1.0rc3
+
+* 23 March 2014
+* Handle code fence specified with backticks (`` ` ``) or tildes (`~`)
+
 ## 1.0rc2
 
 * 19 March 2014
