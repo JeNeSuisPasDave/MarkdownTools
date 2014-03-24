@@ -4,7 +4,7 @@ MarkdownTools is a collection of command line utilities for processing Markdown 
 
 ## mdmerge
 
-mdmerge is a command line utility that produces a single Markdown document by merging a set of Markdown documents. The merge can be accomplished by expanding *include* declarations found in the input files, by concatenating a list of files found in an index file, or both.
+mdmerge is a command line utility that produces a single Markdown document by merging a set of Markdown documents. The merge can be accomplished by expanding *include* specifications found in the input files, by concatenating a list of files found in an index file, or both.
 
 ### Synergy with Marked
 
@@ -42,6 +42,38 @@ mdmerge accepts include declarations in these styles
 [mmdidx]: https://github.com/fletcher/MMD-Support/blob/master/Utilities/mmd_merge.pl
 
 Includes can be nested; that is, a file can include another file that itself include other files, and so on. Index (or book) files are only processed as such when they are the primary input; they cannot be nested -- but the files listed in the index file are treated as normal input files (expanding include specifications found within).
+
+## some examples
+
+This example shows an include specification of another markdown file:
+
+<pre><code class="markdown">This next bit is an included Markdown file. If it also has embedded include specifications, they will be processed as well; these kinds of includes are nested.
+
+&lt;&lt;&#91;section-a.md&#93;
+
+End of example.</code></pre>
+
+This example shows an include specification for source code:
+
+<pre><code class="markdown">This next bit is included source code. It is not examined for nested include specifications.
+
+&lt;&lt;(example.c)
+
+End of example.</code></pre>
+
+This example shows a normal transclusion and a sourcde code transclusion, MultiMarkdown style:
+
+<pre><code class="markdown">This demonstrates MultiMarkdown transclusions:
+
+{{section-a.mmd}}
+
+```C
+{{example.c}}
+```
+
+End of example.</code></pre>
+
+And of course there are raw file includes (`<<{raw.html}`) and index files. Read the documentation linked in the previous section or look at `docs/specifications.mmd` in one of the code branches.
 
 ## Installation
 

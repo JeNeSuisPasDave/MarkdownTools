@@ -1,5 +1,11 @@
 # Change Log 
 
+## 1.0
+
+* 25 March 2014
+* Initial stable release
+* Added developers guide
+
 ## 1.0rc3
 
 * 23 March 2014
