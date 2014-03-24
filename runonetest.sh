@@ -1,5 +1,5 @@
 #! /bin/bash
 #
 export PYTHONPATH=`pwd`/src
-python -m unittest tests.test_CLI.CoreCLITests
+python -m unittest tests.test_MarkdownMerge.MarkdownMergeTests.testUnicodeFirstLineSingleIncludeMarked
 unset PYTHONPATH

@@ -1079,4 +1079,13 @@ class MarkdownMergeTests(unittest.TestCase):
 
         self._mergeTest("u.mmd", "expected-u.mmd")
 
+    def testUnicodeFirstLineSingleIncludeMarked(self):
+        """Test MarkdownMerge.merge().
+
+        A unicode (non-ascii) file with one Marked include.
+
+        """
+
+        self._mergeTest("u2.mmd", "expected-u2.mmd")
+
 # eof
