@@ -1,10 +1,10 @@
 # Change Log 
 
-## 1.0
+## 1.0rc4
 
-* 25 March 2014
-* Initial stable release
-* Added developers guide
+* 24 March 2014
+* Fixed further bug with unicode text handling in some locales. (issue #1)
+* Fixed bug processing consecutive includes with no intervening text. (issue #2)
 
 ## 1.0rc3
 
@@ -23,3 +23,4 @@
 
 * 15 March 2014
 * Initial release
+
