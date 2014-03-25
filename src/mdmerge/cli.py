@@ -326,7 +326,7 @@ class CLI:
         if self.__useStdout:
             self.__outfile = self.__stdout
         else:
-            self.__outfile = open(self.__outFilepath, 'w')
+            self.__outfile = io.open(self.__outFilepath, 'w', encoding='utf-8')
 
         merger = MarkdownMerge(
             wildcardExtensionIs=self.__wildcardExtensionIs,

@@ -9,4 +9,4 @@ site
 *.pyc
 
 CHANGELOG.html
-docs/*.html
+docs/

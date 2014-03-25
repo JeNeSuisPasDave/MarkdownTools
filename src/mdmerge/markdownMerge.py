@@ -380,7 +380,7 @@ class MarkdownMerge:
         if (None == absFilePath
         or not os.path.exists(absFilePath)):
             return False
-        with io.open(absFilePath, "r") as idxfile:
+        with io.open(absFilePath, 'r', encoding='utf-8') as idxfile:
             for line in idxfile:
                 line = line.strip()
                 if 0 == len(line):
@@ -544,6 +544,9 @@ class MarkdownMerge:
                 self.buf.append("~~~")
                 startFenceProduced = True
             line = infile.readline()
+            if (None == infile.encoding
+            and None != line):
+                line = line.decode('utf-8')
             if not line:
                 # at end of file, so just move buf5 into buf
                 if 0 != len(buf5):
@@ -622,7 +625,8 @@ class MarkdownMerge:
                     absIncludePath = self._resolveWildcardExtension(
                         absIncludePath)
                     includedfileNode = infileNode.addChild(absIncludePath)
-                    with io.open(absIncludePath, "r") as includedfile:
+                    with io.open(absIncludePath, 'r',
+                            encoding='utf-8') as includedfile:
                         for deeperLine in self._mergedLines(
                             mainDocumentPath, includedfileNode, includedfile,
                             lclIsCode, lclNeedsFence):
@@ -651,7 +655,10 @@ class MarkdownMerge:
             if None == line:
                 continue
             outline = self._bumpLevel(level, line.rstrip("\r\n"))
-            outfile.write(outline + '\n')
+            outline = outline + '\n';
+            if None == outfile.encoding:
+                outline = outline.encode('utf-8')
+            outfile.write(outline)
 
     def _mergeStdinFile(self,
         infileNode, level, outfile):
@@ -686,7 +693,7 @@ class MarkdownMerge:
         """
 
         absInfilePath = self._resolveWildcardExtension(absInfilePath)
-        with io.open(absInfilePath, "r") as infile:
+        with io.open(absInfilePath, 'r', encoding='utf-8') as infile:
             self._mergeFile(
                 infile, mainDocumentPath, infileNode, level, outfile)
 
@@ -738,7 +745,7 @@ class MarkdownMerge:
 
         """
 
-        with io.open(absIdxfilePath, "r") as idxfile:
+        with io.open(absIdxfilePath, 'r', encoding='utf-8') as idxfile:
             self._mergeIndex(idxfile, absIdxfilePath, idxfileNode, outfile)
 
     def _mergeIndexStdin(self, idxfileNode, outfile):
