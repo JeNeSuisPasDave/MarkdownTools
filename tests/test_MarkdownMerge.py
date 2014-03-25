@@ -871,6 +871,33 @@ class MarkdownMergeTests(unittest.TestCase):
         self._mergeTest(
             absInfilePath, "expected-book-indentation.mmd")
 
+    def testMultiIncludesWith2Files(self):
+        """Test MarkdownMerge.merge().
+
+        This is a root document that includes 2 files.
+
+        """
+
+        self._mergeTest("d-root2.mmd", "expected-d-root2.mmd")
+
+    def testMultiIncludesWith3Files(self):
+        """Test MarkdownMerge.merge().
+
+        This is a root document that includes 3 files.
+
+        """
+
+        self._mergeTest("d-root3.mmd", "expected-d-root3.mmd")
+
+    def testMultiIncludesWith4Files(self):
+        """Test MarkdownMerge.merge().
+
+        This is a root document that includes 4 files.
+
+        """
+
+        self._mergeTest("d-root4.mmd", "expected-d-root4.mmd")
+
     def testStdinNoIncludes(self):
         """Test MarkdownMerge.merge().
 

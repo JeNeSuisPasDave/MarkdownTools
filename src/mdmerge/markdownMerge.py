@@ -533,7 +533,7 @@ class MarkdownMerge:
         buf5.append(None) # indicate top of file
         buf3.append(None) # indicate top of file
         buf5.append(None) # align with buf3 so that buf3 always
-        buf5.append(None) #   corresponds to buf5[2:4]
+        buf5.append(None) #   corresponds to buf5[2:5]
 
         startFenceProduced = False
         endFenceProduced = False
@@ -580,10 +580,16 @@ class MarkdownMerge:
                     # consuming blank line, the start of the fence, and the
                     # include.
                     for x in range(2):
-                        if None != x:
-                            self.buf.append(buf5.popleft())
+                        bline = buf5.popleft()
+                        if None != bline:
+                            self.buf.append(bline)
                     buf5.popleft()
+                    # realign window buffers
                     buf3.clear()
+                    for x in range(3):
+                        buf5.appendleft(None)
+                    for x in range(2,5):
+                        buf3.append(buf5[x])
                 else:
                     # ... or a 3-line include pattern.
                     includePath, lclIsCode, lclNeedsFence = (
@@ -592,14 +598,19 @@ class MarkdownMerge:
                         # consuming the preceding two buffered lines,
                         # then the blank line and the include
                         for x in range(2):
-                            if None != x:
-                                self.buf.append(buf5.popleft())
+                            bline = buf5.popleft()
+                            if None != bline:
+                                self.buf.append(bline)
                         bline = buf5.popleft()
                         if None != bline:
                             self.buf.append(bline)
                         buf5.popleft()
-                        for x in range(2):
-                            buf3.popleft()
+                        # realign window buffers
+                        buf3.clear()
+                        for x in range(4):
+                            buf5.appendleft(None)
+                        for x in range(2,5):
+                            buf3.append(buf5[x])
                     elif (not self.__justRaw
                     and 3 == len(buf3)
                     and self._findMarkedRawIncludePreProcessing(buf3[1])):
@@ -608,15 +619,20 @@ class MarkdownMerge:
                         # in an html comment
                         #
                         for x in range(2):
-                            if None != x:
-                                self.buf.append(buf5.popleft())
+                            bline = buf5.popleft()
+                            if None != bline:
+                                self.buf.append(bline)
                         bline = buf5.popleft()
                         if None != bline:
                             self.buf.append(bline)
                         self.buf.append("<!-- {0} -->".format(
                             buf5.popleft().rstrip("\r\n")))
-                        for x in range(2):
-                            buf3.popleft()
+                        # realign window buffers
+                        buf3.clear()
+                        for x in range(4):
+                            buf5.appendleft(None)
+                        for x in range(2,5):
+                            buf3.append(buf5[x])
                 if includePath:
                     # merge in the include file
                     #
