@@ -1,2 +1,5 @@
 .ruby-version
 *.html
+css/
+js/
+styles/
