@@ -23,4 +23,4 @@ form:
 __author__ = "Dave Hein <dhein@acm.org>"
 __copyright__ = "Copyright 2014 Dave Hein"
 __license__ = "MPL-2.0"
-__version__ = "1.0rc4"
+__version__ = "1.0rc5"
