@@ -12,6 +12,7 @@ from __future__ import print_function, with_statement, generators, \
 
 import unittest
 import mock
+import io
 import os
 import os.path
 import re
@@ -45,36 +46,26 @@ class CoreCLITests(unittest.TestCase):
             sys.stderr = self.old_stderr
 
 
-    # NOTE: many of theses tests use a mock for expanduser to change the
-    #       default location of the data file to a temporary directory so
-    #       that the unit tests do not trash the hotp.data file of the user
-    #       running the tests.
-    #
-
     def __init__(self, *args):
         self.devnull = open(os.devnull, 'w')
         unittest.TestCase.__init__(self, *args)
         self.__root = os.path.dirname(__file__)
         self.__dataDir = os.path.join(self.__root, "data")
 
-    def _AreFilesIdentical(self, filePathA, filePathB):
+    def _areFilesIdentical(self, filePathA, filePathB):
 
         import difflib
 
-        fileTextA = io.open(filePathA, 'r').read().splitlines(True)
-        fileTextB = io.open(filePathB, 'r').read().splitlines(True)
+        with io.open(filePathA) as fileA, \
+        io.open(filePathB) as fileB:
+            fileTextA = fileA.read().splitlines(True)
+            fileTextB = fileB.read().splitlines(True)
         difference = list(difflib.context_diff(fileTextA, fileTextB, n=1))
         diffLineCount = len(difference)
         if 0 == diffLineCount:
             return True;
         pprint.pprint(difference)
         return False;
-
-    def _SideEffectExpandUser(self, path):
-        if not path.startswith("~"):
-            return path
-        path = path.replace("~", self.tempDirPath)
-        return path
 
     # -------------------------------------------------------------------------+
     # setup, teardown, noop
@@ -517,8 +508,7 @@ class CoreCLITests(unittest.TestCase):
     # merge tests
     #
 
-    @mock.patch('os.path.expanduser')
-    def xtestNoIncludes(self, mock_expanduser):
+    def testNoIncludes(self):
         """Test CLI.Execute()
 
         Make certain the file is not modified when there are no includes.
@@ -526,25 +516,68 @@ class CoreCLITests(unittest.TestCase):
         """
 
 
-        mock_expanduser.side_effect = lambda x: self._SideEffectExpandUser(x)
-        rwMock = mock.MagicMock()
         inputFilePath = os.path.join(self.__dataDir, "no-include.mmd")
         outputFilePath = os.path.join(self.tempDirPath, "out.mmd")
 
+        rwMock = mock.MagicMock()
         cut = CLI(stdin=rwMock, stdout=rwMock)
         args = ("-o", outputFilePath, inputFilePath)
         cut.parseCommandArgs(args)
         rwMock.reset_mock()
-        cut.Execute()
-        self.assertTrue(self._AreFilesIdentical(
+        cut.execute()
+        self.assertTrue(self._areFilesIdentical(
             inputFilePath, outputFilePath))
 
+    def testManyInputFilesWithMetadata(self):
+        """Test CLI.Execute()
+
+        Make certain multiple input files are handled properly.
+
+        """
+
+        import shutil
+
+        # create the temp directory
+        inputdirPath = os.path.join(self.tempDirPath, "Inputs")
+        os.makedirs(inputdirPath)
+
+        # copy the index file to a temp directory
+        absTestfilePath = os.path.join(self.__dataDir, "mmd-m-index.txt")
+        tgtPath = os.path.join(inputdirPath, "merge-this.txt")
+        shutil.copy(absTestfilePath, tgtPath)
+
+        # copy the input files to a temp directory
+        testfilePaths = ([
+            "book-m-ch1.mmd", "book-m-ch2.mmd", "book-m-ch3.mmd",
+            "book-m-end.mmd", "book-m-front.mmd", "book-m-index.mmd",
+            "book-m-toc.mmd"])
+        for testfilePath in testfilePaths:
+            absTestfilePath = os.path.join(self.__dataDir, testfilePath)
+            shutil.copy(absTestfilePath, inputdirPath)
+
+        expectedFilePath = os.path.join(self.__dataDir, "expected-book-m.mmd")
+        outputFilePath = os.path.join(self.tempDirPath, "out.mmd")
+
+        rwMock = mock.MagicMock()
+        cut = CLI(stdin=rwMock, stdout=rwMock)
+        args = ("-o", outputFilePath,
+            os.path.join(inputdirPath, "book-m-front.mmd"),
+            os.path.join(inputdirPath, "book-m-toc.mmd"),
+            os.path.join(inputdirPath, "book-m-ch1.mmd"),
+            os.path.join(inputdirPath, "book-m-ch2.mmd"),
+            os.path.join(inputdirPath, "book-m-ch3.mmd"),
+            os.path.join(inputdirPath, "book-m-index.mmd"),
+            os.path.join(inputdirPath, "book-m-end.mmd"))
+        cut.parseCommandArgs(args)
+        rwMock.reset_mock()
+        cut.execute()
+        self.assertTrue(self._areFilesIdentical(
+            expectedFilePath, outputFilePath))
 
     # miscellaneous tests
     #
 
-    @mock.patch('os.path.expanduser')
-    def xtestShowVersion(self, mock_expanduser):
+    def testShowVersion(self):
         """Test CLI.Execute()
 
         Make certain the --version option produces correct output.
@@ -552,21 +585,23 @@ class CoreCLITests(unittest.TestCase):
         """
 
         import os.path
-        import mdMerge
+        import mdmerge
 
-        mock_expanduser.side_effect = lambda x: self._SideEffectExpandUser(x)
         rwMock = mock.MagicMock()
         cut = CLI(stdin=rwMock, stdout=rwMock)
         args = ("--version", )
         cut.parseCommandArgs(args)
         rwMock.reset_mock()
-        cut.Execute()
+        cut.execute()
         calls = [
             mock.call.write(
-                "mdmerge version {0}".format(mdMerge.__version__)),
-            mock.call.write("\n")]
+                "mdmerge version {0}".format(mdmerge.__version__)),
+            mock.call.write("\n"),
+            mock.call.write(
+                "Copyright 2014 Dave Hein. Licensed under MPL-2.0."),
+            mock.call.write("\n")
+            ]
         rwMock.assert_has_calls(calls)
-        self.assertEqual(2, rwMock.write.call_count)
-
+        self.assertEqual(4, rwMock.write.call_count)
 
 #eof

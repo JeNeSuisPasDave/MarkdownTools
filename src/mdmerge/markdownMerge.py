@@ -42,11 +42,16 @@ class MarkdownMerge:
         self.__reoMarkdownHeading = re.compile("^(#+)\s")
         self.__reoMarkedInclude = re.compile("^<<\[(.+)\]$")
         self.__reoMarkedRawInclude = re.compile("^<<\{(.+)\}$")
-        self.__reoMarkedRawIncludeInComment = re.compile("^<!-- <<\{(.+)\} -->$")
+        self.__reoMarkedRawIncludeInComment = re.compile(
+            "^<!-- <<\{(.+)\} -->$")
         self.__reoMmdTransclusion = re.compile("^\{\{(.+)\}\}$")
         self.__reoMultiMarkdownIndexMarker = re.compile("^#\s*merge$")
         self.__reoPathAndWildcardExtension = re.compile("^(.+)\.\*$")
         self.__reoWildcardExtension = re.compile("^(.+)\.\*$")
+        self.__reoYamlStart = re.compile("^---\s*$")
+        self.__reoYamlEnd = re.compile("^...\s*$")
+        self.__reoMultiMarkdownMetaData = re.compile(
+            "^[a-zA-Z0-9][a-zA-Z0-9 \t_-]*\:\s+\S+")
 
         self.buf = deque()
 
@@ -455,6 +460,29 @@ class MarkdownMerge:
             return False
         return True
 
+    def _isMetadataEnd(self, line):
+        if None == line:
+            return True
+        sline = line.strip()
+        if 0 == len(sline):
+            return True
+        m = self.__reoYamlEnd.match(sline)
+        if m:
+            return True
+        return False
+
+    def _isMetadataStart(self, line):
+        if None == line:
+            return False
+        sline = line.strip()
+        m = self.__reoYamlStart.match(sline)
+        if m:
+            return True
+        m = self.__reoMultiMarkdownMetaData.match(sline)
+        if m:
+            return True
+        return False
+
     def _isMultiMarkdownIndexMarker(self, line):
         """Detect whether line is '#merge', indicating the line
         is a marker for mmd_merge index files.
@@ -506,7 +534,8 @@ class MarkdownMerge:
         return True
 
     def _mergedLines(self,
-        mainDocumentPath, infileNode, infile, isCode, needsFence):
+        mainDocumentPath, infileNode, infile, isCode, needsFence,
+        discardMetadata=False):
         """A generator function that examines each line of the
         input file and recursively calls itself for each included
         file. If the file is code, then include specifications are not
@@ -523,6 +552,8 @@ class MarkdownMerge:
             needsFence: True if the code include needs to be wrapped
                 in a fence; False if not a code include or if fence already
                 exists.
+            discardMetadata: Whether to preserve or discard the Multimarkdown
+                metadata found at the top of the infile.
 
         Returns:
             The next line to be written to the output file, or None
@@ -554,11 +585,19 @@ class MarkdownMerge:
 
         isEOF = False
 
+        shouldCheckMetadata = discardMetadata
+        if isCode:
+            shouldCheckMetadata = False
+        haveCheckedForMetadata = False
+        inMetadata = False
+
         while True:
             if (needsFence
             and not startFenceProduced):
                 self.buf.append("~~~")
                 startFenceProduced = True
+            # read the next line
+            #
             line = infile.readline()
             # force EOF line to be None for cleaner logic below
             #
@@ -569,6 +608,22 @@ class MarkdownMerge:
             if (None == infile.encoding
             and None != line):
                 line = line.decode('utf-8')
+            # discard metadata if required
+            #
+            if shouldCheckMetadata:
+                if not haveCheckedForMetadata:
+                    haveCheckedForMetadata = True
+                    if self._isMetadataStart(line):
+                        inMetadata = True
+                        continue
+                if inMetadata:
+                    if not self._isMetadataEnd(line):
+                        continue
+                    inMetadata = False
+                    continue # eat the line that terminates the metadata
+
+            # Process the buffers
+            #
             if isEOF:
                 # special processing to empty buf5 when after EOF
                 #
@@ -697,14 +752,15 @@ class MarkdownMerge:
                             encoding='utf-8') as includedfile:
                         for deeperLine in self._mergedLines(
                             mainDocumentPath, includedfileNode, includedfile,
-                            lclIsCode, lclNeedsFence):
+                            lclIsCode, lclNeedsFence, discardMetadata=True):
                             yield deeperLine
             if 0 != len(self.buf):
                 nextLine = self.buf.popleft()
                 yield nextLine
 
     def _mergeFile(self,
-        infile, mainDocumentPath, infileNode, level, outfile):
+        infile, mainDocumentPath, infileNode, level, outfile,
+        discardMetadata=False):
         """Add the merged lines of a single top-level file to the output.
 
         Args:
@@ -716,11 +772,14 @@ class MarkdownMerge:
             level: the heading level to add to the headings found in the
                 input file.
             outfile: the open output file in which to write the merged lines.
+            discardMetadata: Whether to preserve or discard the Multimarkdown
+                metadata found at the top of the file.
 
         """
 
         for line in self._mergedLines(
-                mainDocumentPath, infileNode, infile, False, False):
+                mainDocumentPath, infileNode, infile, False, False,
+                discardMetadata):
             if None == line:
                 continue
             outline = self._bumpLevel(level, line.rstrip("\r\n"))
@@ -746,7 +805,8 @@ class MarkdownMerge:
             sys.stdin, mainDocumentPath, infileNode, level, outfile)
 
     def _mergeSingleFile(self,
-        mainDocumentPath, absInfilePath, infileNode, level, outfile):
+        mainDocumentPath, absInfilePath, infileNode, level, outfile,
+        discardMetadata=False):
         """Add the merged lines of a single top-level file to the output.
 
         Args:
@@ -758,13 +818,16 @@ class MarkdownMerge:
             level: the heading level to add to the headings found in the
                 input file.
             outfile: the open output file in which to write the merged lines.
+            discardMetadata: Whether to preserve or discard the Multimarkdown
+                metadata found at the top of the file.
 
         """
 
         absInfilePath = self._resolveWildcardExtension(absInfilePath)
         with io.open(absInfilePath, 'r', encoding='utf-8') as infile:
             self._mergeFile(
-                infile, mainDocumentPath, infileNode, level, outfile)
+                infile, mainDocumentPath, infileNode, level, outfile,
+                discardMetadata)
 
     def _mergeIndex(self, idxfile, mainDocumentPath, idxfileNode, outfile):
         """Treat each line of the index file as an input file. Process
@@ -781,6 +844,7 @@ class MarkdownMerge:
         """
 
         firstTime = True
+        discardMetadata = False
         for line in idxfile:
             infilePath = line.strip()
             if (0 == len(infilePath)
@@ -798,10 +862,12 @@ class MarkdownMerge:
             infileNode = idxfileNode.addChild(absInfilePath)
             if not firstTime:
                 outfile.write("\n") # insert blank line between files
+                discardMetadata = True # keep only the 1st file's metadata
             firstTime = False
             level = self._countIndentation(line)
             self._mergeSingleFile(
-                mainDocumentPath, absInfilePath, infileNode, level, outfile)
+                mainDocumentPath, absInfilePath, infileNode, level, outfile,
+                discardMetadata)
 
     def _mergeIndexFile(self, absIdxfilePath, idxfileNode, outfile):
         """Treat each line of the index file as an input file. Process
@@ -892,7 +958,7 @@ class MarkdownMerge:
             return True
         return False
 
-    def merge(self, infileNode, outfile):
+    def merge(self, infileNode, outfile, discardMetadata=False):
         """Give the input file (via a Node object) and the output file
         stream object, process the input file, including other files as
         specified by the include specification encountered, writing the
@@ -903,6 +969,8 @@ class MarkdownMerge:
                 file to be processed.
             outfile: the output file stream to which the resulting
                 lines will be written.
+            discardMetadata: Whether to preserve or discard the Multimarkdown
+                metadata found at the top of the file. Ignored for index files.
 
         """
 
@@ -922,6 +990,7 @@ class MarkdownMerge:
                 self._mergeIndexFile(absInfilePath, infileNode, outfile)
             else:
                 self._mergeSingleFile(
-                    absInfilePath, absInfilePath, infileNode, 0, outfile)
+                    absInfilePath, absInfilePath, infileNode, 0, outfile,
+                    discardMetadata)
 
 # eof
