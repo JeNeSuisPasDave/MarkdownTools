@@ -1,0 +1,8 @@
+#merge
+book-m-front.mmd
+book-m-toc.mmd
+book-m-ch1.mmd
+book-m-ch2.mmd
+book-m-ch3.mmd
+book-m-index.mmd
+book-m-end.mmd

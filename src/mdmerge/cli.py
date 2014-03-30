@@ -12,6 +12,7 @@ import os
 import os.path
 import stat
 import sys
+import io
 
 from .node import Node
 from .markdownMerge import MarkdownMerge
@@ -120,7 +121,9 @@ class CLI:
             help="Specify the path to the output file")
         self.parser.add_argument(
             dest='inFiles', metavar='inFile', nargs='*', type=str,
-            help="One or more files to merge, or just '-' for STDIN")
+            help="""One or more files to merge, or just '-' for STDIN. If
+            multiple files are provide then they will be treated as if they
+            were listed in an index file.""")
 
     def _isSequenceNotString(self, obj):
         return (
@@ -328,6 +331,8 @@ class CLI:
         else:
             self.__outfile = io.open(self.__outFilepath, 'w', encoding='utf-8')
 
+        discardMetadata = False
+        firstTime = True
         merger = MarkdownMerge(
             wildcardExtensionIs=self.__wildcardExtensionIs,
             bookTxtIsSpecial=self.__bookTxtIsSpecial,
@@ -340,7 +345,11 @@ class CLI:
                 infileNode = Node(os.getcwd())
             else:
                 infileNode = Node(filePath=os.path.abspath(ipath))
-            merger.merge(infileNode, self.__outfile)
+            if not firstTime:
+                self.__outfile.write("\n") # insert blank line between files
+                discardMetadata = True # ignore metadata in subsequent files
+            firstTime = False
+            merger.merge(infileNode, self.__outfile, discardMetadata)
 
         if not self.__useStdout:
             self.__outfile.close()

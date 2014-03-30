@@ -314,6 +314,24 @@ class MarkdownMergeTests(unittest.TestCase):
         self.assertEqual(0, os.stat(outfilePath).st_size)
         self.assertEqual(0, os.stat(errfilePath).st_size)
 
+    def testNestedIncludeMarkedComplexMetadata(self):
+        """Test MarkdownMerge.merge().
+
+        A file with nested Marked includes and multiple metadata lines.
+
+        """
+
+        self._mergeTest("m.mmd", "expected-m.mmd")
+
+    def testNestedIncludeMarkedComplexYamlMetadata(self):
+        """Test MarkdownMerge.merge().
+
+        A file with nested Marked includes and multiple metadata lines.
+
+        """
+
+        self._mergeTest("m-y.mmd", "expected-m-y.mmd")
+
     def testNoIncludes(self):
         """Test MarkdownMerge.merge().
 
@@ -790,6 +808,37 @@ class MarkdownMergeTests(unittest.TestCase):
         absInfilePath = os.path.join(inputdirPath, "merge-this.txt")
         self._mergeTest(
             absInfilePath, "expected-book.mmd")
+
+    def testMmdIndexWithMetadata(self):
+        """Test MarkdownMerge.merge().
+
+        A file is recognized as a multimarkdown index because the first line
+        is '#merge:'; it is processed as a mmd_merge index.
+
+        """
+
+        # create the temp directory
+        inputdirPath = os.path.join(self.tempDirPath.name, "Inputs")
+        os.makedirs(inputdirPath)
+
+        # copy the index file to a temp directory
+        absTestfilePath = os.path.join(self.__dataDir, "mmd-m-index.txt")
+        tgtPath = os.path.join(inputdirPath, "merge-this.txt")
+        shutil.copy(absTestfilePath, tgtPath)
+
+        # copy the input files to a temp directory
+        testfilePaths = ([
+            "book-m-ch1.mmd", "book-m-ch2.mmd", "book-m-ch3.mmd",
+            "book-m-end.mmd", "book-m-front.mmd", "book-m-index.mmd",
+            "book-m-toc.mmd"])
+        for testfilePath in testfilePaths:
+            absTestfilePath = os.path.join(self.__dataDir, testfilePath)
+            shutil.copy(absTestfilePath, inputdirPath)
+
+        # run the test
+        absInfilePath = os.path.join(inputdirPath, "merge-this.txt")
+        self._mergeTest(
+            absInfilePath, "expected-book-m.mmd")
 
     def testMmdIndexWithBlanksAndComments(self):
         """Test MarkdownMerge.merge().
