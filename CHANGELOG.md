@@ -1,5 +1,11 @@
 # Change Log 
 
+## 1.0rc5
+
+* 30 March 2014
+* Now will pickup include spec found on last line of file. (issue #2)
+* Now strips out MultiMarkdown metadata from all but first input or included file. (issue #3)
+
 ## 1.0rc4
 
 * 24 March 2014
