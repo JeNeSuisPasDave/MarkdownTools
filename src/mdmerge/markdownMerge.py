@@ -108,7 +108,7 @@ class MarkdownMerge:
                 spaceCount = 0
                 continue
             if ' ' == line[i]:
-                spaceCount += 1;
+                spaceCount += 1
                 if 4 == spaceCount:
                     level += 1
                     spaceCount = 0
@@ -530,6 +530,18 @@ class MarkdownMerge:
 
         """
 
+        # note 0: this is a generator function with multiple yield statements.
+        # Sadly, it is very tricky.
+        #
+        # note 1: there are three line buffers in use. self.buf is the main
+        # line buffer and it is the source of the content for the final
+        # yield. buf5 is a five line buffer used to detect include
+        # specifications that are within code fences. Lines popped off buf5
+        # are appended to self.buf. And buf3 mirrors the last 3 lines of buf5
+        # and is used to detect unfenced include specifications. Lines
+        # popped off buf3 are discarded.
+        #
+
         buf5 = deque(maxlen=5)
         buf3 = deque(maxlen=3)
         buf5.append(None) # indicate top of file
@@ -540,33 +552,71 @@ class MarkdownMerge:
         startFenceProduced = False
         endFenceProduced = False
 
+        isEOF = False
+
         while True:
             if (needsFence
             and not startFenceProduced):
                 self.buf.append("~~~")
                 startFenceProduced = True
             line = infile.readline()
+            # force EOF line to be None for cleaner logic below
+            #
+            if not line:
+                line = None
+            # if infile encoding is not specified, force UTF-8
+            #
             if (None == infile.encoding
             and None != line):
                 line = line.decode('utf-8')
-            if not line:
+            if isEOF:
+                # special processing to empty buf5 when after EOF
+                #
+                # note: we delay detecting EOF immediately so that one None
+                # line gets pushed into the buffers so that we can detect an
+                # include specification that is the last line of a file
+                #
                 # at end of file, so just move buf5 into buf
+                #
                 if 0 != len(buf5):
                     bline = buf5.popleft()
                     if None != bline:
                         self.buf.append(bline)
                     else:
                         continue # skip leading None objects
+                # at end of line buffer, so close the fence if needed;
+                # otherwise, just get out of the main loop
+                #
                 if 0 == len(self.buf):
                     if (needsFence
                     and not endFenceProduced):
                         self.buf.append("~~~")
                         endFenceProduced = True
                     else:
-                        break;
+                        break
             elif isCode:
-                self.buf.append(line);
+                # code files are not processed for nested include specs
+                #
+                # detect end of file
+                #
+                if (None == line
+                and not isEOF):
+                    isEOF = True
+                # push content line into the line buffer
+                #
+                if None != line:
+                    self.buf.append(line)
             else:
+                # process nested include specs
+                #
+                # detect end of file
+                #
+                if (None == line
+                and not isEOF):
+                    isEOF = True
+                # pull line of the 5-line buffer and push onto the main
+                # line buffer
+                #
                 if 5 == len(buf5):
                     # roll line out of buf5 into buf, so we don't lose it
                     bline = buf5.popleft()
@@ -650,7 +700,8 @@ class MarkdownMerge:
                             lclIsCode, lclNeedsFence):
                             yield deeperLine
             if 0 != len(self.buf):
-                yield self.buf.popleft()
+                nextLine = self.buf.popleft()
+                yield nextLine
 
     def _mergeFile(self,
         infile, mainDocumentPath, infileNode, level, outfile):
@@ -673,7 +724,7 @@ class MarkdownMerge:
             if None == line:
                 continue
             outline = self._bumpLevel(level, line.rstrip("\r\n"))
-            outline = outline + '\n';
+            outline = outline + '\n'
             if None == outfile.encoding:
                 outline = outline.encode('utf-8')
             outfile.write(outline)
@@ -731,7 +782,7 @@ class MarkdownMerge:
 
         firstTime = True
         for line in idxfile:
-            infilePath = line.strip();
+            infilePath = line.strip()
             if (0 == len(infilePath)
             or self._isIndexComment(line)
             or self._isLeanpubIndexMeta(line)):

@@ -198,6 +198,62 @@ class MarkdownMergeTests(unittest.TestCase):
                 for line in errfile:
                     print(line, end='')
 
+    def _mergeTryPassErr(self,
+        infilePath, expectedfilePath=None, expectingStderr=False,
+        wildcardExtensionIs=".html", bookTxtIsSpecial=False,
+        infileAsStdin=False, stdinIsBook=False,
+        ignoreTransclusions=False, justRaw=False):
+        """Take a single inputfile and produce a merged output file, then
+        dump the output to stdout.
+
+        Args:
+            infilePath: the input file path, relative to self.__dataDir
+            expectedFilePath: the expected file path, relative to
+                self.__dataDir. Defaults to None.
+            expectingStderr: if True then the stderr stream should have
+                some content.
+            wildcardExtensionIs: the extension to substitute if include
+                file extension is a wildcardExtensionIs
+            bookTxtIsSpecial: whether to treat 'book.txt' as a Leanpub index
+                file.
+            infileAsStdin: the CUT should access the infile via STDIN
+            stdinIsBook: whether STDIN is treated as an index file
+            ignoreTransclusions: whether MultiMarkdown transclusion
+                specifications should be left untouched
+            justRaw: whether to only process raw include specifications
+
+        """
+
+        infilePath = os.path.join(self.__dataDir, infilePath)
+        if None != expectedfilePath:
+            expectedfilePath = os.path.join(self.__dataDir, expectedfilePath)
+            expectedSize = os.stat(expectedfilePath).st_size
+        outfilePath = os.path.join(self.tempDirPath.name, "result.mmd")
+        if infileAsStdin:
+            with io.open(outfilePath, "w") as outfile, \
+                io.open(infilePath, "r") as infile, \
+                MarkdownMergeTests.RedirectStdStreams(
+                    stdin=infile, stdout=outfile, stderr=None):
+                cut = MarkdownMerge(
+                    wildcardExtensionIs, bookTxtIsSpecial, stdinIsBook,
+                    ignoreTransclusions, justRaw)
+                infileNode = Node(
+                    os.path.dirname(os.path.abspath(infilePath)))
+                cut.merge(infileNode, sys.stdout)
+        else:
+            with io.open(outfilePath, "w") as outfile, \
+                MarkdownMergeTests.RedirectStdStreams(
+                    stdout=outfile, stderr=None):
+                cut = MarkdownMerge(
+                    wildcardExtensionIs, bookTxtIsSpecial, stdinIsBook,
+                    ignoreTransclusions, justRaw)
+                infileNode = Node(filePath=infilePath)
+                cut.merge(infileNode, sys.stdout)
+
+        with io.open(outfilePath, "r") as outfile:
+            for line in outfile:
+                print(line, end='')
+
     def _sideEffectExpandUser(self, path):
         if not path.startswith("~"):
             return path
@@ -892,6 +948,16 @@ class MarkdownMergeTests(unittest.TestCase):
         """
 
         self._mergeTest("d-root3.mmd", "expected-d-root3.mmd")
+
+    def testMultiIncludesWith3FilesLastAtEndOfRoot(self):
+        """Test MarkdownMerge.merge().
+
+        This is a root document that includes 3 files, with the last include
+        being the last line of the file.
+
+        """
+
+        self._mergeTest("d-root3a.mmd", "expected-d-root3a.mmd")
 
     def testMultiIncludesWith4Files(self):
         """Test MarkdownMerge.merge().
