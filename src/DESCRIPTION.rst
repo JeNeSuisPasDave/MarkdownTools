@@ -99,15 +99,22 @@ Options
 -------
 
 ``options``
-	One or more of `--export-target`, `--book`, `--leanpub`, `--version`, `--help`, `-h`, `-?`.
+	One or more of `--book`, `--export-target`, `--ignore-transclusions`,
+	`--just-raw`, `--leanpub`, `--version`, `--help`, `-h`.
+
+``--book``
+	Treat STDIN as an index file (a "book" file).
 
 ``--export-target [html|latex|lyx|opml|rtf|odf]``
 	Indicates the ultimate output target of the markdown processor, but 
 	primarily impacts wildcard substitution in Marked inclusion.
 
-``--book``
-	Treat STDIN as an index file (a "book" file).
+``--help``
+	Help information
 
+``-h``
+	Help information
+	
 ``--ignore-transclusions``
 	Leave any MultiMarkdown transclusion specifications alone; do not include
 	the specified file. Useful if you want to mix Marked/LeanPub includes and
@@ -140,11 +147,6 @@ Options
 ``-``
 	The input comes from STDIN.
 
-``--help``
-	Help information
-
-``-h``
-	Help information
 
 Installation
 ============
