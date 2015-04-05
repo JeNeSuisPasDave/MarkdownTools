@@ -1,0 +1,10 @@
+{
+	"folders":
+	[
+		{
+			"name": "MarkdownTools",
+			"path": ".",
+			"folder_exclude_patterns": ["__pycache__", "venv27", "venv33", "venv34", ".git"]
+		}
+	]
+}
