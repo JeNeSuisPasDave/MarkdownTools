@@ -1,5 +1,5 @@
 #! /bin/bash
 #
 cp ../LICENSE.html .
-python setup.py sdist upload
+python setup.py sdist
 rm LICENSE.html

@@ -1,12 +1,24 @@
+# Apple detrius
+#
 .DS_Store
+
+# Python extras
+#
 venv
 venv3*
 venv2*
-.sass-cache
 __py_cache__
 node_modules
 site
 *.pyc
-
 CHANGELOG.html
+
+# Website generation
+#
+.sass-cache
 docs/
+
+# Sublime Text 3
+#
+*.sublime-workspace
+
