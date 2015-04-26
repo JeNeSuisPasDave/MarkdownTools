@@ -1,14 +1,28 @@
-*.DS_Store
-src
-tests
+# Apple detrius
+#
+.DS_Store
+
+# Python extras
+#
 venv
 venv3*
 venv2*
-.sass-cache
 __py_cache__
 node_modules
 site
 *.pyc
-
 CHANGELOG.html
+
+# Website generation
+#
+.sass-cache
 docs/specifications.html
+
+# Sublime Text 3
+#
+*.sublime-workspace
+
+# Source code and tests
+#
+src/
+tests/
