@@ -22,3 +22,6 @@ docs/
 #
 *.sublime-workspace
 
+# lint output
+#
+fixme.lint.txt

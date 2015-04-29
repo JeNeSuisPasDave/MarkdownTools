@@ -7,6 +7,8 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 #
 
+"""Module of classes to handle command line input."""
+
 import argparse
 import os
 import os.path
@@ -17,19 +19,27 @@ import io
 from .node import Node
 from .markdownMerge import MarkdownMerge
 
+
 class CLI:
-    """Handle the command line interface, invoking MarkdownMerge as
+
+    """Handle the command line interface.
+
+    Handle the command line interface, invoking MarkdownMerge as
     needed.
 
     """
 
     class RedirectStdStreams:
-        """A context manager that can temporarily redirect the standard
+
+        """A context manager for standard streams.
+
+        A context manager that can temporarily redirect the standard
         streams.
 
         """
 
         def __init__(self, stdout=None, stderr=None):
+            """Constructor."""
             self._stdout = stdout or sys.stdout
             self._stderr = stderr or sys.stderr
 
@@ -50,53 +60,52 @@ class CLI:
     __STDIN_FILENAME = '-'
 
     def __init__(self, stdin=None, stdout=None, stderr=None):
-        """Constructor
-
-        """
-
+        """Constructor."""
         self.__stdinRedirected = False
         if stdin is not None:
             self.__stdin = stdin
             self.__stdinRedirected = True
         else:
             self.__stdin = sys.stdin
-        self.__stdoutRedirected = False
+        self.__stdout_redirected = False
         if stdout is not None:
             self.__stdout = stdout
-            self.__stdoutRedirected = True
+            self.__stdout_redirected = True
         else:
             self.__stdout = sys.stdout
-        self.__stderrRedirected = False
+        self.__stderr_redirected = False
         if stderr is not None:
             self.__stderr = stderr
-            self.__stderrRedirected = True
+            self.__stderr_redirected = True
         else:
             self.__stderr = sys.stderr
 
-        self.__abandonCLI = False
-        self.__useStdin = False
-        self.__posStdin = 0
-        self.__useStdout = True
-        self.__outFilepath = None
-        self.__outfile = None
-        self.__inputFilepaths = []
-        self.__bookTxtIsSpecial = False
-        self.__wildcardExtensionIs = None
-        self.__stdinIsBook = False
-        self.__ignoreTransclusions = False
-        self.__justRaw = False
+        self.__abandon_cli = False
+        self.__use_stdin = False
+        self.__pos_stdin = 0
+        self.__use_stdout = True
+        self.__out_filepath = None
+        self.__out_file = None
+        self.__input_filepaths = []
+        self.__book_txt_is_special = False
+        self.__wildcard_extension_is = None
+        self.__stdin_is_book = False
+        self.__ignore_transclusions = False
+        self.__just_raw = False
 
         # main command
         #
         self.parser = argparse.ArgumentParser(
-            description=("Concatenate and include multiple markdown"
-            "files into a single file"), prog='mdmerge')
+            description=(
+                "Concatenate and include multiple markdown"
+                "files into a single file"),
+            prog='mdmerge')
         self.parser.add_argument(
             '--version', dest='showVersion', action='store_true',
             default=False, help="show the software version")
         self.parser.add_argument(
             "--export-target", dest='exportTarget', action='store',
-            choices=['html','latex','lyx','opml','rtf','odf'],
+            choices=['html', 'latex', 'lyx', 'opml', 'rtf', 'odf'],
             default='html',
             help="Guide include file wildcard substitution")
         self.parser.add_argument(
@@ -125,14 +134,16 @@ class CLI:
             multiple files are provide then they will be treated as if they
             were listed in an index file.""")
 
-    def _isSequenceNotString(self, obj):
+    def _is_sequence_not_string(self, obj):
+        """Determine whether the object is a string."""
         return (
             not hasattr(obj, "strip") and
             hasattr(obj, "__getitem__") or
             hasattr(obj, "__iter__"))
 
-    def _isSequenceOfChars(self, obj):
-        if not self._isSequenceNotString(obj):
+    def _is_sequence_of_chars(self, obj):
+        """Determine whether the object is a char sequence."""
+        if not self._is_sequence_not_string(obj):
             return False
         if (0 == len(obj)):
             return False
@@ -141,37 +152,41 @@ class CLI:
                 return False
         return True
 
-    def _showVersion(self):
-        """Show the version only.
-
-        """
-
+    def _show_version(self):
+        """Show the version only."""
         import mdmerge
 
-        print("mdmerge version {0}".format(mdmerge.__version__),
+        print(
+            "mdmerge version {0}".format(mdmerge.__version__),
             file=self.__stdout)
-        print("{0}. Licensed under {1}.".format(
-            mdmerge.__copyright__, mdmerge.__license__),
+        print(
+            "{0}. Licensed under {1}.".format(
+                mdmerge.__copyright__, mdmerge.__license__),
             file=self.__stdout)
 
-    def _stdinIsTTY(self):
+    def _stdin_is_tty(self):
         """Detect whether the stdin is mapped to a terminal console.
 
         I found this technique in the answer by thg435 here:
         http://stackoverflow.com/questions/13442574/how-do-i-determine-if-sys-stdin-is-redirected-from-a-file-vs-piped-from-another
 
         """
-
-
         mode = os.fstat(0).st_mode
-        if ((not stat.S_ISFIFO(mode)) # piped
-        and (not stat.S_ISREG(mode))): # redirected
+        if ((not stat.S_ISFIFO(mode))
+                and (not stat.S_ISREG(mode))):
+            # not piped (not FIFO) and not redirected (not REG), so assume
+            # terminal input
+            #
             return True
-        else: # not piped or redirected, so assume terminal input
+        else:
+            # is either piped or redirected, so assume not terminal input
+            #
             return False
 
-    def _validateArgs(self):
-        """Validate the command line arguments and set fields based on those
+    def _validate_args(self):
+        """Validate and capture the command line arguments.
+
+        Validate the command line arguments and set fields based on those
         arguments.
 
         Raises:
@@ -179,17 +194,20 @@ class CLI:
             the command line.
 
         """
-
         # if '--version' specified, ignore remainder of command line
         #
         if self.args.showVersion:
             if 'subcmd' in dir(self.args):
                 self.args.subcmd = None
             return
-        if self.args.outFile != None:
-            self.__useStdout = False
-            self.__outFilepath = self._validateOutputFilepath(
+        # Check the output file
+        #
+        if self.args.outFile is not None:
+            self.__use_stdout = False
+            self.__out_filepath = self._validate_output_filepath(
                 self.args.outFile)
+        # Check the input files
+        #
         if 0 == len(self.args.inFiles):
             self.parser.error(
                 "You must specify at least one input. " +
@@ -200,50 +218,57 @@ class CLI:
         # as a string. So we need to convert it back to a list containing
         # a single string element.
         #
-        if 0 != len(self.args.inFiles):
-            if self._isSequenceOfChars(self.args.inFiles):
-                self.args.inFiles = [''.join(self.args.inFiles)]
-        # Now validate the input file paths (or the '-' stdin designator)
+        if (self.args.inFiles
+                and self._is_sequence_of_chars(self.args.inFiles)):
+            self.args.inFiles = [''.join(self.args.inFiles)]
+        # # Now validate the input file paths (or the '-' stdin designator)
         #
         for fp in self.args.inFiles:
             ffp = None
-            if (1 == len(self.args.inFiles)
-            and CLI.__STDIN_FILENAME == fp):
+            if ((1 == len(self.args.inFiles))
+                    and (CLI.__STDIN_FILENAME == fp)):
                 ffp = CLI.__STDIN_FILENAME
-                self.__useStdin = True
+                self.__use_stdin = True
             else:
-                ffp = self._validateInputFilepath(fp)
-            self.__inputFilepaths.append(ffp)
-        self._validateExportTarget(self.args.exportTarget)
+                ffp = self._validate_input_filepath(fp)
+            self.__input_filepaths.append(ffp)
+        # Validate the export target
+        #
+        self._validate_export_target(self.args.exportTarget)
+        # Validate the remaining arguments
+        #
         if self.args.leanPub:
-            self.__bookTxtIsSpecial = True
+            self.__book_txt_is_special = True
         if self.args.forceBook:
-            self.__stdinIsBook = True
+            self.__stdin_is_book = True
         if self.args.ignoreTransclusions:
-            self.__ignoreTransclusions = True
+            self.__ignore_transclusions = True
         if self.args.justRaw:
-            self.__justRaw = True;
+            self.__just_raw = True
 
-    def _validateExportTarget(self, exportTarget):
-        if exportTarget is not None:
-            if 'html' ==  exportTarget:
-                self.__wildcardExtensionIs = ".html"
-            elif 'latex' ==  exportTarget:
-                self.__wildcardExtensionIs = ".tex"
-            elif 'lyx' ==  exportTarget:
-                self.__wildcardExtensionIs = ".lyx"
-            elif 'opml' ==  exportTarget:
-                self.__wildcardExtensionIs = ".opml"
-            elif 'rtf' ==  exportTarget:
-                self.__wildcardExtensionIs = ".rtf"
-            elif 'odf' ==  exportTarget:
-                self.__wildcardExtensionIs = ".odf"
+    def _validate_export_target(self, export_target):
+        """Validate the export target argument."""
+        if export_target is not None:
+            if 'html' == export_target:
+                self.__wildcard_extension_is = ".html"
+            elif 'latex' == export_target:
+                self.__wildcard_extension_is = ".tex"
+            elif 'lyx' == export_target:
+                self.__wildcard_extension_is = ".lyx"
+            elif 'opml' == export_target:
+                self.__wildcard_extension_is = ".opml"
+            elif 'rtf' == export_target:
+                self.__wildcard_extension_is = ".rtf"
+            elif 'odf' == export_target:
+                self.__wildcard_extension_is = ".odf"
             else:
                 raise ValueError(
-                    "Unknown export target: {0}".format(exportTarget))
+                    "Unknown export target: {0}".format(export_target))
 
-    def _validateInputFilepath(self, filepath):
-        """Verify that if the file exists it is a regular file, or if the file
+    def _validate_input_filepath(self, filepath):
+        """Verify the input file path.
+
+        Verify that if the file exists it is a regular file, or if the file
         doesn't exist that the parent directory does exist.
 
         Returns:
@@ -253,7 +278,6 @@ class CLI:
             parser.error: The file is not a regular file or it doesn't exist.
 
         """
-
         fnf = False
         try:
             if CLI.__STDIN_FILENAME == filepath:
@@ -274,8 +298,10 @@ class CLI:
             self.parser.error(
                 "'{0}' does not exist.".format(filepath))
 
-    def _validateOutputFilepath(self, filepath):
-        """Verify that if the file exists it is a regular file, or if the file
+    def _validate_output_filepath(self, filepath):
+        """Verify the output file path.
+
+        Verify that if the file exists it is a regular file, or if the file
         doesn't exist that the parent directory does exist.
 
         Returns:
@@ -286,7 +312,6 @@ class CLI:
                 or it doesn't exist.
 
         """
-
         try:
             st = os.stat(filepath)
             mode = st.st_mode
@@ -310,88 +335,91 @@ class CLI:
                 fmts = "'{0}' is not a directory; invalid output file path"
                 self.parser.error(fmts.format(dirpath))
         except FileNotFoundError:
-            fmts = ("The directory '{0}' does not exist;"
+            fmts = (
+                "The directory '{0}' does not exist;"
                 " invalid output file path")
             self.parser.error(fmts.format(dirpath))
 
     def execute(self):
-        """Merge the files.
-
-        """
-
-        if self.__abandonCLI:
+        """Merge the files."""
+        if self.__abandon_cli:
             return
 
         if self.args.showVersion:
-            self._showVersion()
+            self._show_version()
             return
 
-        if self.__useStdout:
-            self.__outfile = self.__stdout
+        if self.__use_stdout:
+            self.__out_file = self.__stdout
         else:
-            self.__outfile = io.open(self.__outFilepath, 'w', encoding='utf-8')
+            self.__out_file = io.open(
+                self.__out_filepath, 'w', encoding='utf-8')
 
-        discardMetadata = False
-        firstTime = True
+        discard_metadata = False
+        first_time = True
         merger = MarkdownMerge(
-            wildcardExtensionIs=self.__wildcardExtensionIs,
-            bookTxtIsSpecial=self.__bookTxtIsSpecial,
-            stdinIsBook=self.__stdinIsBook,
-            ignoreTransclusions=self.__ignoreTransclusions,
-            justRaw=self.__justRaw)
-        for ipath in self.__inputFilepaths:
-            infileNode = None
+            wildcard_extension_is=self.__wildcard_extension_is,
+            book_txt_is_special=self.__book_txt_is_special,
+            stdin_is_book=self.__stdin_is_book,
+            ignore_transclusions=self.__ignore_transclusions,
+            just_raw=self.__just_raw)
+        for ipath in self.__input_filepaths:
+            infile_node = None
             if CLI.__STDIN_FILENAME == ipath:
-                infileNode = Node(os.getcwd())
+                infile_node = Node(os.getcwd())
             else:
-                infileNode = Node(filePath=os.path.abspath(ipath))
-            if not firstTime:
-                self.__outfile.write("\n") # insert blank line between files
-                discardMetadata = True # ignore metadata in subsequent files
-            firstTime = False
-            merger.merge(infileNode, self.__outfile, discardMetadata)
+                infile_node = Node(file_path=os.path.abspath(ipath))
+            if not first_time:
+                # insert blank line between files
+                self.__out_file.write("\n")
+                # ignore metadata in subsequent files
+                discard_metadata = True
+            first_time = False
+            merger.merge(infile_node, self.__out_file, discard_metadata)
 
-        if not self.__useStdout:
-            self.__outfile.close()
+        if not self.__use_stdout:
+            self.__out_file.close()
 
-    def parseCommandArgs(self, args):
-        """Parse the command line arguments.
-
-        """
-
-        if self.__abandonCLI:
+    def parse_command_args(self, args):
+        """Parse the command line arguments."""
+        if self.__abandon_cli:
             return
 
-        if (self.__stdoutRedirected
-        and self.__stderrRedirected):
+        if (self.__stdout_redirected
+                and self.__stderr_redirected):
             with CLI.RedirectStdStreams(
-                stdout=self.__stdout, stderr=self.__stderr):
+                    stdout=self.__stdout, stderr=self.__stderr):
                 self.args = self.parser.parse_args(args)
-                self._validateArgs()
+                self._validate_args()
         else:
             self.args = self.parser.parse_args(args)
-            self._validateArgs()
+            self._validate_args()
+
 
 # -------------------------------------------------------------------------+
 # entry points for setuptools
 # -------------------------------------------------------------------------+
 
+
 def mdmerge_command():
+    """Entry point for command installed by setuptools."""
     try:
         m = CLI()
-        m.parseCommandArgs(sys.argv[1:])
+        m.parse_command_args(sys.argv[1:])
         m.execute()
     except KeyboardInterrupt:
         print("")
+
 
 # -------------------------------------------------------------------------+
 # module's main method
 # -------------------------------------------------------------------------+
 
+
 if '__main__' == __name__:
     try:
         m = CLI()
-        m.parseCommandArgs(sys.argv[1:])
+        m.parse_command_args(sys.argv[1:])
         m.execute()
     except KeyboardInterrupt:
         print("")

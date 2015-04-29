@@ -2,15 +2,11 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 #
-"""
-Unit tests for the MarkdownMerge module, MarkdownMerge class.
-
-"""
+"""Unit tests for the MarkdownMerge module, MarkdownMerge class."""
 
 import unittest
 import os
 import os.path
-import re
 import sys
 import io
 import shutil
@@ -19,15 +15,22 @@ from mdmerge.node import Node
 
 import pprint
 
+
 class MarkdownMergeTests(unittest.TestCase):
 
+    """Unit tests for the markdownMerge.py module."""
+
     class RedirectStdStreams:
-        """A context manager that can temporarily redirect the standard
+
+        """A context manager for standard streams.
+
+        A context manager that can temporarily redirect the standard
         streams.
 
         """
 
         def __init__(self, stdin=None, stdout=None, stderr=None):
+            """Constructor."""
             self._stdin = stdin or sys.stdin
             self._stdout = stdout or sys.stdout
             self._stderr = stderr or sys.stderr
@@ -48,213 +51,219 @@ class MarkdownMergeTests(unittest.TestCase):
             sys.stderr = self.old_stderr
 
     def __init__(self, *args):
+        """Constructor."""
         self.devnull = open(os.devnull, "w")
         super().__init__(*args)
         self.__root = os.path.dirname(__file__)
         self.__dataDir = os.path.join(self.__root, "data")
 
-    def _areFilesIdentical(self, filePathA, filePathB):
+    def __del__(self):
+        """Destructor."""
+        self.devnull.close()
+        self.devnull = None
+
+    def _are_files_identical(self, file_path_a, file_path_b):
 
         import difflib
 
-        with io.open(filePathA) as fileA, \
-        io.open(filePathB) as fileB:
-            fileTextA = fileA.read().splitlines(True)
-            fileTextB = fileB.read().splitlines(True)
-        difference = list(difflib.context_diff(fileTextA, fileTextB, n=1))
-        diffLineCount = len(difference)
-        if 0 == diffLineCount:
-            return True;
+        with io.open(file_path_a) as file_a, \
+                io.open(file_path_b) as file_b:
+            file_text_a = file_a.read().splitlines(True)
+            file_text_b = file_b.read().splitlines(True)
+        difference = list(difflib.context_diff(file_text_a, file_text_b, n=1))
+        diff_line_count = len(difference)
+        if 0 == diff_line_count:
+            return True
         pprint.pprint(difference)
-        return False;
+        return False
 
-    def _mergeTest(self,
-        infilePath, expectedfilePath=None, expectingStderr=False,
-        wildcardExtensionIs=".html", bookTxtIsSpecial=False,
-        infileAsStdin=False, stdinIsBook=False,
-        ignoreTransclusions=False, justRaw=False):
-        """Take a single inputfile and produce a merged output file, then
+    def _merge_test(
+            self,
+            infile_path, expectedfile_path=None, expecting_stderr=False,
+            wildcard_extension_is=".html", book_txt_is_special=False,
+            infile_as_stdin=False, stdin_is_book=False,
+            ignore_transclusions=False, just_raw=False):
+        """Merge input file and check output against expected output.
+
+        Take a single inputfile and produce a merged output file, then
         check the results against a file containing the expected content.
 
         Args:
-            infilePath: the input file path, relative to self.__dataDir
-            expectedFilePath: the expected file path, relative to
+            infile_path: the input file path, relative to self.__dataDir
+            expectedfile_path: the expected file path, relative to
                 self.__dataDir. Defaults to None.
-            expectingStderr: if True then the stderr stream should have
+            expecting_stderr: if True then the stderr stream should have
                 some content.
-            wildcardExtensionIs: the extension to substitute if include
-                file extension is a wildcardExtensionIs
-            bookTxtIsSpecial: whether to treat 'book.txt' as a Leanpub index
+            wildcard_extension_is: the extension to substitute if include
+                file extension is a wildcard_extension_is
+            book_txt_is_special: whether to treat 'book.txt' as a Leanpub index
                 file.
-            infileAsStdin: the CUT should access the infile via STDIN
-            stdinIsBook: whether STDIN is treated as an index file
-            ignoreTransclusions: whether MultiMarkdown transclusion
+            infile_as_stdin: the CUT should access the infile via STDIN
+            stdin_is_book: whether STDIN is treated as an index file
+            ignore_transclusions: whether MultiMarkdown transclusion
                 specifications should be left untouched
-            justRaw: whether to only process raw include specifications
+            just_raw: whether to only process raw include specifications
 
         """
-
         # TODO: take cut constructor arguments as a dictionary argument
 
-        infilePath = os.path.join(self.__dataDir, infilePath)
-        if None != expectedfilePath:
-            expectedfilePath = os.path.join(self.__dataDir, expectedfilePath)
-            expectedSize = os.stat(expectedfilePath).st_size
-        outfilePath = os.path.join(self.tempDirPath.name, "result.mmd")
-        errfilePath = os.path.join(self.tempDirPath.name, "result.err")
-        if infileAsStdin:
-            with io.open(outfilePath, "w") as outfile, \
-                io.open(errfilePath, "w") as errfile, \
-                io.open(infilePath, "r") as infile, \
+        infile_path = os.path.join(self.__dataDir, infile_path)
+        if None != expectedfile_path:
+            expectedfile_path = os.path.join(self.__dataDir, expectedfile_path)
+            expected_size = os.stat(expectedfile_path).st_size
+        outfile_path = os.path.join(self.temp_dir_path.name, "result.mmd")
+        errfile_path = os.path.join(self.temp_dir_path.name, "result.err")
+        if infile_as_stdin:
+            with io.open(outfile_path, "w") as outfile, \
+                io.open(errfile_path, "w") as errfile, \
+                io.open(infile_path, "r") as infile, \
                 MarkdownMergeTests.RedirectStdStreams(
                     stdin=infile, stdout=outfile, stderr=errfile):
                 cut = MarkdownMerge(
-                    wildcardExtensionIs, bookTxtIsSpecial, stdinIsBook,
-                    ignoreTransclusions, justRaw)
-                infileNode = Node(os.path.dirname(infilePath))
-                cut.merge(infileNode, sys.stdout)
+                    wildcard_extension_is, book_txt_is_special, stdin_is_book,
+                    ignore_transclusions, just_raw)
+                infile_node = Node(os.path.dirname(infile_path))
+                cut.merge(infile_node, sys.stdout)
         else:
-            with io.open(outfilePath, "w") as outfile, \
-                io.open(errfilePath, "w") as errfile, \
+            with io.open(outfile_path, "w") as outfile, \
+                io.open(errfile_path, "w") as errfile, \
                 MarkdownMergeTests.RedirectStdStreams(
                     stdout=outfile, stderr=errfile):
                 cut = MarkdownMerge(
-                    wildcardExtensionIs, bookTxtIsSpecial, stdinIsBook,
-                    ignoreTransclusions, justRaw)
-                infileNode = Node(filePath=infilePath)
-                cut.merge(infileNode, sys.stdout)
-        if expectingStderr:
-            self.assertGreater(os.stat(errfilePath).st_size, 0)
+                    wildcard_extension_is, book_txt_is_special, stdin_is_book,
+                    ignore_transclusions, just_raw)
+                infile_node = Node(file_path=infile_path)
+                cut.merge(infile_node, sys.stdout)
+        if expecting_stderr:
+            self.assertGreater(os.stat(errfile_path).st_size, 0)
         else:
-            self.assertEqual(0, os.stat(errfilePath).st_size)
-        if None != expectedfilePath:
-            self.assertEqual(expectedSize, os.stat(outfilePath).st_size)
-            self.assertTrue(self._areFilesIdentical(
-                expectedfilePath, outfilePath))
+            self.assertEqual(0, os.stat(errfile_path).st_size)
+        if None != expectedfile_path:
+            self.assertEqual(expected_size, os.stat(outfile_path).st_size)
+            self.assertTrue(self._are_files_identical(
+                expectedfile_path, outfile_path))
 
-    def _mergeTry(self,
-        infilePath, expectedfilePath=None, expectingStderr=False,
-        wildcardExtensionIs=".html", bookTxtIsSpecial=False,
-        infileAsStdin=False, stdinIsBook=False,
-        ignoreTransclusions=False, justRaw=False):
-        """Take a single inputfile and produce a merged output file, then
+    def _merge_try(
+            self,
+            infile_path, expectedfile_path=None, expecting_stderr=False,
+            wildcard_extension_is=".html", book_txt_is_special=False,
+            infile_as_stdin=False, stdin_is_book=False,
+            ignore_transclusions=False, just_raw=False):
+        """Merge inputfile and dump output to stdout.
+
+        Take a single inputfile and produce a merged output file, then
         dump the output to stdout.
 
         Args:
-            infilePath: the input file path, relative to self.__dataDir
-            expectedFilePath: the expected file path, relative to
+            infile_path: the input file path, relative to self.__dataDir
+            expectedfile_path: the expected file path, relative to
                 self.__dataDir. Defaults to None.
-            expectingStderr: if True then the stderr stream should have
+            expecting_stderr: if True then the stderr stream should have
                 some content.
-            wildcardExtensionIs: the extension to substitute if include
-                file extension is a wildcardExtensionIs
-            bookTxtIsSpecial: whether to treat 'book.txt' as a Leanpub index
+            wildcard_extension_is: the extension to substitute if include
+                file extension is a wildcard_extension_is
+            book_txt_is_special: whether to treat 'book.txt' as a Leanpub index
                 file.
-            infileAsStdin: the CUT should access the infile via STDIN
-            stdinIsBook: whether STDIN is treated as an index file
-            ignoreTransclusions: whether MultiMarkdown transclusion
+            infile_as_stdin: the CUT should access the infile via STDIN
+            stdin_is_book: whether STDIN is treated as an index file
+            ignore_transclusions: whether MultiMarkdown transclusion
                 specifications should be left untouched
-            justRaw: whether to only process raw include specifications
+            just_raw: whether to only process raw include specifications
 
         """
-
-        infilePath = os.path.join(self.__dataDir, infilePath)
-        if None != expectedfilePath:
-            expectedfilePath = os.path.join(self.__dataDir, expectedfilePath)
-            expectedSize = os.stat(expectedfilePath).st_size
-        outfilePath = os.path.join(self.tempDirPath.name, "result.mmd")
-        errfilePath = os.path.join(self.tempDirPath.name, "result.err")
-        if infileAsStdin:
-            with io.open(outfilePath, "w") as outfile, \
-                io.open(errfilePath, "w") as errfile, \
-                io.open(infilePath, "r") as infile, \
+        infile_path = os.path.join(self.__dataDir, infile_path)
+        outfile_path = os.path.join(self.temp_dir_path.name, "result.mmd")
+        errfile_path = os.path.join(self.temp_dir_path.name, "result.err")
+        if infile_as_stdin:
+            with io.open(outfile_path, "w") as outfile, \
+                io.open(errfile_path, "w") as errfile, \
+                io.open(infile_path, "r") as infile, \
                 MarkdownMergeTests.RedirectStdStreams(
                     stdin=infile, stdout=outfile, stderr=errfile):
                 cut = MarkdownMerge(
-                    wildcardExtensionIs, bookTxtIsSpecial, stdinIsBook,
-                    ignoreTransclusions, justRaw)
-                infileNode = Node(
-                    os.path.dirname(os.path.abspath(infilePath)))
-                cut.merge(infileNode, sys.stdout)
+                    wildcard_extension_is, book_txt_is_special, stdin_is_book,
+                    ignore_transclusions, just_raw)
+                infile_node = Node(
+                    os.path.dirname(os.path.abspath(infile_path)))
+                cut.merge(infile_node, sys.stdout)
         else:
-            with io.open(outfilePath, "w") as outfile, \
-                io.open(errfilePath, "w") as errfile, \
+            with io.open(outfile_path, "w") as outfile, \
+                io.open(errfile_path, "w") as errfile, \
                 MarkdownMergeTests.RedirectStdStreams(
                     stdout=outfile, stderr=errfile):
                 cut = MarkdownMerge(
-                    wildcardExtensionIs, bookTxtIsSpecial, stdinIsBook,
-                    ignoreTransclusions, justRaw)
-                infileNode = Node(filePath=infilePath)
-                cut.merge(infileNode, sys.stdout)
+                    wildcard_extension_is, book_txt_is_special, stdin_is_book,
+                    ignore_transclusions, just_raw)
+                infile_node = Node(file_path=infile_path)
+                cut.merge(infile_node, sys.stdout)
 
-        with io.open(outfilePath, "r") as outfile:
+        with io.open(outfile_path, "r") as outfile:
             for line in outfile:
                 print(line, end='')
-        if 0 != os.stat(errfilePath).st_size:
-            with io.open(errfilePath, "r") as errfile:
+        if 0 != os.stat(errfile_path).st_size:
+            with io.open(errfile_path, "r") as errfile:
                 for line in errfile:
                     print(line, end='')
 
-    def _mergeTryPassErr(self,
-        infilePath, expectedfilePath=None, expectingStderr=False,
-        wildcardExtensionIs=".html", bookTxtIsSpecial=False,
-        infileAsStdin=False, stdinIsBook=False,
-        ignoreTransclusions=False, justRaw=False):
-        """Take a single inputfile and produce a merged output file, then
+    def _merge_try_pass_err(
+            self,
+            infile_path, expectedfile_path=None, expecting_stderr=False,
+            wildcard_extension_is=".html", book_txt_is_special=False,
+            infile_as_stdin=False, stdin_is_book=False,
+            ignore_transclusions=False, just_raw=False):
+        """Merge inputfile and dump output to stdout.
+
+        Take a single inputfile and produce a merged output file, then
         dump the output to stdout.
 
         Args:
-            infilePath: the input file path, relative to self.__dataDir
-            expectedFilePath: the expected file path, relative to
+            infile_path: the input file path, relative to self.__dataDir
+            expectedfile_path: the expected file path, relative to
                 self.__dataDir. Defaults to None.
-            expectingStderr: if True then the stderr stream should have
+            expecting_stderr: if True then the stderr stream should have
                 some content.
-            wildcardExtensionIs: the extension to substitute if include
-                file extension is a wildcardExtensionIs
-            bookTxtIsSpecial: whether to treat 'book.txt' as a Leanpub index
+            wildcard_extension_is: the extension to substitute if include
+                file extension is a wildcard_extension_is
+            book_txt_is_special: whether to treat 'book.txt' as a Leanpub index
                 file.
-            infileAsStdin: the CUT should access the infile via STDIN
-            stdinIsBook: whether STDIN is treated as an index file
-            ignoreTransclusions: whether MultiMarkdown transclusion
+            infile_as_stdin: the CUT should access the infile via STDIN
+            stdin_is_book: whether STDIN is treated as an index file
+            ignore_transclusions: whether MultiMarkdown transclusion
                 specifications should be left untouched
-            justRaw: whether to only process raw include specifications
+            just_raw: whether to only process raw include specifications
 
         """
-
-        infilePath = os.path.join(self.__dataDir, infilePath)
-        if None != expectedfilePath:
-            expectedfilePath = os.path.join(self.__dataDir, expectedfilePath)
-            expectedSize = os.stat(expectedfilePath).st_size
-        outfilePath = os.path.join(self.tempDirPath.name, "result.mmd")
-        if infileAsStdin:
-            with io.open(outfilePath, "w") as outfile, \
-                io.open(infilePath, "r") as infile, \
+        infile_path = os.path.join(self.__dataDir, infile_path)
+        outfile_path = os.path.join(self.temp_dir_path.name, "result.mmd")
+        if infile_as_stdin:
+            with io.open(outfile_path, "w") as outfile, \
+                io.open(infile_path, "r") as infile, \
                 MarkdownMergeTests.RedirectStdStreams(
                     stdin=infile, stdout=outfile, stderr=None):
                 cut = MarkdownMerge(
-                    wildcardExtensionIs, bookTxtIsSpecial, stdinIsBook,
-                    ignoreTransclusions, justRaw)
-                infileNode = Node(
-                    os.path.dirname(os.path.abspath(infilePath)))
-                cut.merge(infileNode, sys.stdout)
+                    wildcard_extension_is, book_txt_is_special, stdin_is_book,
+                    ignore_transclusions, just_raw)
+                infile_node = Node(
+                    os.path.dirname(os.path.abspath(infile_path)))
+                cut.merge(infile_node, sys.stdout)
         else:
-            with io.open(outfilePath, "w") as outfile, \
+            with io.open(outfile_path, "w") as outfile, \
                 MarkdownMergeTests.RedirectStdStreams(
                     stdout=outfile, stderr=None):
                 cut = MarkdownMerge(
-                    wildcardExtensionIs, bookTxtIsSpecial, stdinIsBook,
-                    ignoreTransclusions, justRaw)
-                infileNode = Node(filePath=infilePath)
-                cut.merge(infileNode, sys.stdout)
+                    wildcard_extension_is, book_txt_is_special, stdin_is_book,
+                    ignore_transclusions, just_raw)
+                infile_node = Node(file_path=infile_path)
+                cut.merge(infile_node, sys.stdout)
 
-        with io.open(outfilePath, "r") as outfile:
+        with io.open(outfile_path, "r") as outfile:
             for line in outfile:
                 print(line, end='')
 
-    def _sideEffectExpandUser(self, path):
+    def _side_effect_expand_user(self, path):
         if not path.startswith("~"):
             return path
-        path = path.replace("~", self.tempDirPath.name)
+        path = path.replace("~", self.temp_dir_path.name)
         return path
 
     # -------------------------------------------------------------------------+
@@ -262,26 +271,18 @@ class MarkdownMergeTests(unittest.TestCase):
     # -------------------------------------------------------------------------+
 
     def setUp(self):
-        """Create data used by the test cases.
-
-        """
-
+        """Create data used by the test cases."""
         import tempfile
 
-        self.tempDirPath = tempfile.TemporaryDirectory()
+        self.temp_dir_path = tempfile.TemporaryDirectory()
         return
 
     def tearDown(self):
-        """Cleanup data used by the test cases.
+        """Cleanup data used by the test cases."""
+        self.temp_dir_path.cleanup()
+        self.temp_dir_path = None
 
-        """
-
-        import tempfile
-
-        self.tempDirPath.cleanup()
-        self.tempDirPath = None
-
-    def testNoOp(self):
+    def test_no_op(self):
         """Excercise tearDown and setUp methods.
 
         This test does nothing itself. It is useful to test the tearDown()
@@ -294,218 +295,198 @@ class MarkdownMergeTests(unittest.TestCase):
     # tests for MarkdownMerge.merge()
     # -------------------------------------------------------------------------+
 
-    def testEmptyInput(self):
+    def test_empty_input(self):
         """Test MarkdownMerge.merge().
 
         A zero length file should produce a zero length output.
 
         """
-
-        infilePath = os.path.join(self.__dataDir, "empty.mmd")
-        outfilePath = os.path.join(self.tempDirPath.name, "result.mmd")
-        errfilePath = os.path.join(self.tempDirPath.name, "result.err")
-        with io.open(outfilePath, "w") as outfile, \
-            io.open(errfilePath, "w") as errfile, \
+        infile_path = os.path.join(self.__dataDir, "empty.mmd")
+        outfile_path = os.path.join(self.temp_dir_path.name, "result.mmd")
+        errfile_path = os.path.join(self.temp_dir_path.name, "result.err")
+        with io.open(outfile_path, "w") as outfile, \
+            io.open(errfile_path, "w") as errfile, \
             MarkdownMergeTests.RedirectStdStreams(
                 stdout=outfile, stderr=errfile):
             cut = MarkdownMerge(".html")
-            infileNode = Node(filePath=infilePath)
-            cut.merge(infileNode, sys.stdout)
-        self.assertEqual(0, os.stat(outfilePath).st_size)
-        self.assertEqual(0, os.stat(errfilePath).st_size)
+            infile_node = Node(file_path=infile_path)
+            cut.merge(infile_node, sys.stdout)
+        self.assertEqual(0, os.stat(outfile_path).st_size)
+        self.assertEqual(0, os.stat(errfile_path).st_size)
 
-    def testNestedIncludeMarkedComplexMetadata(self):
+    def test_nested_include_marked_complex_metadata(self):
         """Test MarkdownMerge.merge().
 
         A file with nested Marked includes and multiple metadata lines.
 
         """
+        self._merge_test("m.mmd", "expected-m.mmd")
 
-        self._mergeTest("m.mmd", "expected-m.mmd")
-
-    def testNestedIncludeMarkedComplexYamlMetadata(self):
+    def test_nested_include_marked_complex_yaml_metadata(self):
         """Test MarkdownMerge.merge().
 
         A file with nested Marked includes and multiple metadata lines.
 
         """
+        self._merge_test("m-y.mmd", "expected-m-y.mmd")
 
-        self._mergeTest("m-y.mmd", "expected-m-y.mmd")
-
-    def testNoIncludes(self):
+    def test_no_includes(self):
         """Test MarkdownMerge.merge().
 
         A file with no includes should produce an identical file.
 
         """
+        self._merge_test("aa.mmd", "aa.mmd")
 
-        self._mergeTest("aa.mmd", "aa.mmd")
-
-    def testSingleIncludeFencedTransclusion(self):
+    def test_single_include_fenced_transclusion(self):
         """Test MarkdownMerge.merge().
 
         A file with one MMD transclusion inside an unnamed code fence.
 
         """
+        self._merge_test("t-c.mmd", "expected-t-c.mmd")
 
-        self._mergeTest("t-c.mmd", "expected-t-c.mmd")
-
-    def testSingleIncludeFencedTransclusionLong(self):
+    def test_single_include_fenced_transclusion_long(self):
         """Test MarkdownMerge.merge().
 
         A file with one MMD transclusion inside an unnamed code fence (where
         the fence is 6 ticks, not 3)
 
         """
+        self._merge_test("t-c-long.mmd", "expected-t-c-long.mmd")
 
-        self._mergeTest("t-c-long.mmd", "expected-t-c-long.mmd")
-
-    def testSingleIncludeFencedTransclusionTildes(self):
+    def test_single_include_fenced_transclusion_tildes(self):
         """Test MarkdownMerge.merge().
 
         A file with one MMD transclusion inside an unnamed code fence (where
         the fence is tildes (~))
 
         """
+        self._merge_test("t-c2.mmd", "expected-t-c2.mmd")
 
-        self._mergeTest("t-c2.mmd", "expected-t-c2.mmd")
-
-    def testSingleIncludeFencedTransclusionIgnored(self):
+    def test_single_include_fenced_transclusion_ignored(self):
         """Test MarkdownMerge.merge().
 
         A file with one MMD transclusion inside an unnamed code fence,
         but with the transclusions ignored.
 
         """
+        self._merge_test("t-c.mmd", "t-c.mmd", ignore_transclusions=True)
 
-        self._mergeTest("t-c.mmd", "t-c.mmd", ignoreTransclusions=True)
-
-    def testSingleIncludeFencedTransclusionIgnoredLong(self):
+    def test_single_include_fenced_transclusion_ignored_long(self):
         """Test MarkdownMerge.merge().
 
         A file with one MMD transclusion inside an unnamed code fence,
         but with the transclusions ignored. The fence is 6 ticks not 3.
 
         """
+        self._merge_test(
+            "t-c-long.mmd", "t-c-long.mmd", ignore_transclusions=True)
 
-        self._mergeTest(
-            "t-c-long.mmd", "t-c-long.mmd", ignoreTransclusions=True)
-
-    def testSingleIncludeFencedTransclusionIgnoredTildes(self):
+    def test_single_include_fenced_transclusion_ignored_tildes(self):
         """Test MarkdownMerge.merge().
 
         A file with one MMD transclusion inside an unnamed code fence,
         but with the transclusions ignored. The fence is tildes not ticks.
 
         """
+        self._merge_test("t-c2.mmd", "t-c2.mmd", ignore_transclusions=True)
 
-        self._mergeTest("t-c2.mmd", "t-c2.mmd", ignoreTransclusions=True)
-
-    def testSingleIncludeLeanpubCode(self):
+    def test_single_include_leanpub_code(self):
         """Test MarkdownMerge.merge().
 
         A file with one leanpub include specification.
 
         """
+        self._merge_test("lp-a.mmd", "expected-lp-a.mmd")
 
-        self._mergeTest("lp-a.mmd", "expected-lp-a.mmd")
-
-    def testSingleIncludeLeanpubTitledCode(self):
+    def test_single_include_leanpub_titled_code(self):
         """Test MarkdownMerge.merge().
 
         A file with one titled leanpub include specification.
 
         """
+        self._merge_test("lpt-a.mmd", "expected-lpt-a.mmd")
 
-        self._mergeTest("lpt-a.mmd", "expected-lpt-a.mmd")
-
-    def testSingleIncludeMarked(self):
+    def test_single_include_marked(self):
         """Test MarkdownMerge.merge().
 
         A file with one Marked include.
 
         """
+        self._merge_test("a.mmd", "expected-a.mmd")
 
-        self._mergeTest("a.mmd", "expected-a.mmd")
-
-    def testSingleIncludeNamedFencedTransclusion(self):
+    def test_single_include_named_fenced_transclusion(self):
         """Test MarkdownMerge.merge().
 
         A file with one MMD transclusion inside a named code fence.
 
         """
+        self._merge_test("t-c-named.mmd", "expected-t-c-named.mmd")
 
-        self._mergeTest("t-c-named.mmd", "expected-t-c-named.mmd")
-
-    def testSingleIncludeNamedFencedTransclusionLong(self):
+    def test_single_include_named_fenced_transclusion_long(self):
         """Test MarkdownMerge.merge().
 
         A file with one MMD transclusion inside a named code fence. fence
         is longer than three backticks.
 
         """
+        self._merge_test("t-c-long-named.mmd", "expected-t-c-long-named.mmd")
 
-        self._mergeTest("t-c-long-named.mmd", "expected-t-c-long-named.mmd")
-
-    def testSingleIncludeNamedFencedTransclusionTildes(self):
+    def test_single_include_named_fenced_transclusion_tildes(self):
         """Test MarkdownMerge.merge().
 
         A file with one MMD transclusion inside a named code fence. fence
         is tildes.
 
         """
+        self._merge_test("t-c2-named.mmd", "expected-t-c2-named.mmd")
 
-        self._mergeTest("t-c2-named.mmd", "expected-t-c2-named.mmd")
-
-    def testSingleIncludeRawDefault(self):
+    def test_single_include_raw_default(self):
         """Test MarkdownMerge.merge().
 
         A file with one raw include specification. That spec should be
         ignored by default.
 
         """
+        self._merge_test("r-a.mmd", "expected-r-a.mmd")
 
-        self._mergeTest("r-a.mmd", "expected-r-a.mmd")
-
-    def testSingleIncludeRawJustRaw(self):
+    def test_single_include_raw_just_raw(self):
         """Test MarkdownMerge.merge().
 
         A file with one raw include specification. Because --just-raw
         is specified, that spec should be processed.
 
         """
+        self._merge_test("r-a.mmd", "expected-r-aa.mmd", just_raw=True)
 
-        self._mergeTest("r-a.mmd", "expected-r-aa.mmd", justRaw=True)
-
-    def testSingleIncludeTransclusion(self):
+    def test_single_include_transclusion(self):
         """Test MarkdownMerge.merge().
 
         A file with one MMD transclusion.
 
         """
+        self._merge_test("t-a.mmd", "expected-t-a.mmd")
 
-        self._mergeTest("t-a.mmd", "expected-t-a.mmd")
-
-    def testSingleIncludeTransclusionIgnored(self):
+    def test_single_include_transclusion_ignored(self):
         """Test MarkdownMerge.merge().
 
         A file with one MMD transclusion, but with the transclusion
         ignored.
 
         """
+        self._merge_test("t-a.mmd", "t-a.mmd", ignore_transclusions=True)
 
-        self._mergeTest("t-a.mmd", "t-a.mmd", ignoreTransclusions=True)
-
-    def testChildToParentCycle(self):
+    def test_child_to_parent_cycle(self):
         """Test MarkdownMerge.merge().
 
         A child include file that includes its parent.
 
         """
         with self.assertRaises(AssertionError):
-            self._mergeTest("cycle-a.mmd")
+            self._merge_test("cycle-a.mmd")
 
-    def testChildToAncestorCycle(self):
+    def test_child_to_ancestor_cycle(self):
         """Test MarkdownMerge.merge().
 
         A deep child include file that includes an ancestor
@@ -513,142 +494,138 @@ class MarkdownMergeTests(unittest.TestCase):
 
         """
         with self.assertRaises(AssertionError):
-            self._mergeTest("cycle-b.mmd")
+            self._merge_test("cycle-b.mmd")
 
-    def testChildToSelfCycle(self):
+    def test_child_to_self_cycle(self):
         """Test MarkdownMerge.merge().
 
         A parent includes itself.
 
         """
         with self.assertRaises(AssertionError):
-            self._mergeTest("cycle-i.mmd")
+            self._merge_test("cycle-i.mmd")
 
-    def testBookTextIsNotSpecial(self):
+    def test_book_text_is_not_special(self):
         """Test MarkdownMerge.merge().
 
         A Leanpub index file called 'book.txt' but without the flag
         indicating that it is special.
 
         """
-
         # create the temp directory
-        inputdirPath = os.path.join(self.tempDirPath.name, "Inputs")
-        os.makedirs(inputdirPath)
+        inputdir_path = os.path.join(self.temp_dir_path.name, "Inputs")
+        os.makedirs(inputdir_path)
 
         # copy the index file to a temp directory
-        absTestfilePath = os.path.join(self.__dataDir, "lp-book.txt")
-        tgtPath = os.path.join(inputdirPath, "book.txt")
-        shutil.copy(absTestfilePath, tgtPath)
+        abs_testfile_path = os.path.join(self.__dataDir, "lp-book.txt")
+        tgt_path = os.path.join(inputdir_path, "book.txt")
+        shutil.copy(abs_testfile_path, tgt_path)
 
         # copy the input files to a temp directory
-        testfilePaths = ([
+        testfile_paths = ([
             "book-ch1.mmd", "book-ch2.mmd", "book-ch3.mmd",
             "book-end.mmd", "book-front.mmd", "book-index.mmd",
             "book-toc.mmd"])
-        for testfilePath in testfilePaths:
-            absTestfilePath = os.path.join(self.__dataDir, testfilePath)
-            shutil.copy(absTestfilePath, inputdirPath)
+        for testfile_path in testfile_paths:
+            abs_testfile_path = os.path.join(self.__dataDir, testfile_path)
+            shutil.copy(abs_testfile_path, inputdir_path)
 
         # run the test
-        absInfilePath = os.path.join(inputdirPath, "book.txt")
-        self._mergeTest(absInfilePath, "expected-unmerged-book.txt")
+        abs_infile_path = os.path.join(inputdir_path, "book.txt")
+        self._merge_test(abs_infile_path, "expected-unmerged-book.txt")
 
-    def testBookTextIsSpecial(self):
+    def test_book_text_is_special(self):
         """Test MarkdownMerge.merge().
 
         A file with the special name 'book.txt' is recognized
         as a leanpub index and processed as such.
 
         """
-
         # create the temp directory
-        inputdirPath = os.path.join(self.tempDirPath.name, "Inputs")
-        os.makedirs(inputdirPath)
+        inputdir_path = os.path.join(self.temp_dir_path.name, "Inputs")
+        os.makedirs(inputdir_path)
 
         # copy the index file to a temp directory
-        absTestfilePath = os.path.join(self.__dataDir, "lp-book.txt")
-        tgtPath = os.path.join(inputdirPath, "book.txt")
-        shutil.copy(absTestfilePath, tgtPath)
+        abs_testfile_path = os.path.join(self.__dataDir, "lp-book.txt")
+        tgt_path = os.path.join(inputdir_path, "book.txt")
+        shutil.copy(abs_testfile_path, tgt_path)
 
         # copy the input files to a temp directory
-        testfilePaths = ([
+        testfile_paths = ([
             "book-ch1.mmd", "book-ch2.mmd", "book-ch3.mmd",
             "book-end.mmd", "book-front.mmd", "book-index.mmd",
             "book-toc.mmd"])
-        for testfilePath in testfilePaths:
-            absTestfilePath = os.path.join(self.__dataDir, testfilePath)
-            shutil.copy(absTestfilePath, inputdirPath)
+        for testfile_path in testfile_paths:
+            abs_testfile_path = os.path.join(self.__dataDir, testfile_path)
+            shutil.copy(abs_testfile_path, inputdir_path)
 
         # run the test
-        absInfilePath = os.path.join(inputdirPath, "book.txt")
-        self._mergeTest(
-            absInfilePath, "expected-book.mmd", bookTxtIsSpecial=True)
+        abs_infile_path = os.path.join(inputdir_path, "book.txt")
+        self._merge_test(
+            abs_infile_path, "expected-book.mmd", book_txt_is_special=True)
 
-    def testBookTextMissingFile(self):
+    def test_book_text_missing_file(self):
         """Test MarkdownMerge.merge().
 
         A leanpub index contains a non-extant file. Show that is
         the file is ignored but a warning is issued to stderr.
 
         """
-
         # create the temp directory
-        inputdirPath = os.path.join(self.tempDirPath.name, "Inputs")
-        os.makedirs(inputdirPath)
+        inputdir_path = os.path.join(self.temp_dir_path.name, "Inputs")
+        os.makedirs(inputdir_path)
 
         # copy the index file to a temp directory
-        absTestfilePath = os.path.join(self.__dataDir, "lp-book-bad1.txt")
-        tgtPath = os.path.join(inputdirPath, "book.txt")
-        shutil.copy(absTestfilePath, tgtPath)
+        abs_testfile_path = os.path.join(self.__dataDir, "lp-book-bad1.txt")
+        tgt_path = os.path.join(inputdir_path, "book.txt")
+        shutil.copy(abs_testfile_path, tgt_path)
 
         # copy the input files to a temp directory
-        testfilePaths = ([
+        testfile_paths = ([
             "book-ch1.mmd", "book-ch2.mmd", "book-ch3.mmd",
             "book-end.mmd", "book-front.mmd", "book-index.mmd",
             "book-toc.mmd"])
-        for testfilePath in testfilePaths:
-            absTestfilePath = os.path.join(self.__dataDir, testfilePath)
-            shutil.copy(absTestfilePath, inputdirPath)
+        for testfile_path in testfile_paths:
+            abs_testfile_path = os.path.join(self.__dataDir, testfile_path)
+            shutil.copy(abs_testfile_path, inputdir_path)
 
         # run the test
-        absInfilePath = os.path.join(inputdirPath, "book.txt")
-        self._mergeTest(
-            absInfilePath, "expected-book-bad1.mmd",
-            bookTxtIsSpecial=True, expectingStderr=True)
+        abs_infile_path = os.path.join(inputdir_path, "book.txt")
+        self._merge_test(
+            abs_infile_path, "expected-book-bad1.mmd",
+            book_txt_is_special=True, expecting_stderr=True)
 
-    def testLeanpubIndex(self):
+    def test_leanpub_index(self):
         """Test MarkdownMerge.merge().
 
         A file is recognized as a leanpub index because the first line
         is 'frontmatter:'; it is processed as a leanpub index.
 
         """
-
         # create the temp directory
-        inputdirPath = os.path.join(self.tempDirPath.name, "Inputs")
-        os.makedirs(inputdirPath)
+        inputdir_path = os.path.join(self.temp_dir_path.name, "Inputs")
+        os.makedirs(inputdir_path)
 
         # copy the index file to a temp directory
-        absTestfilePath = os.path.join(self.__dataDir, "lp-index.txt")
-        tgtPath = os.path.join(inputdirPath, "merge-this.txt")
-        shutil.copy(absTestfilePath, tgtPath)
+        abs_testfile_path = os.path.join(self.__dataDir, "lp-index.txt")
+        tgt_path = os.path.join(inputdir_path, "merge-this.txt")
+        shutil.copy(abs_testfile_path, tgt_path)
 
         # copy the input files to a temp directory
-        testfilePaths = ([
+        testfile_paths = ([
             "book-ch1.mmd", "book-ch2.mmd", "book-ch3.mmd",
             "book-end.mmd", "book-front.mmd", "book-index.mmd",
             "book-toc.mmd"])
-        for testfilePath in testfilePaths:
-            absTestfilePath = os.path.join(self.__dataDir, testfilePath)
-            shutil.copy(absTestfilePath, inputdirPath)
+        for testfile_path in testfile_paths:
+            abs_testfile_path = os.path.join(self.__dataDir, testfile_path)
+            shutil.copy(abs_testfile_path, inputdir_path)
 
         # run the test
-        absInfilePath = os.path.join(inputdirPath, "merge-this.txt")
-        self._mergeTest(
-            absInfilePath, "expected-book.mmd")
+        abs_infile_path = os.path.join(inputdir_path, "merge-this.txt")
+        self._merge_test(
+            abs_infile_path, "expected-book.mmd")
 
-    def testLeanpubIndexWithBlanksAndComments(self):
+    def test_leanpub_index_with_blanks_and_comments(self):
         """Test MarkdownMerge.merge().
 
         A file is recognized as a leanpub index because the first line
@@ -656,32 +633,31 @@ class MarkdownMergeTests(unittest.TestCase):
         and comments are ignored.
 
         """
-
         # create the temp directory
-        inputdirPath = os.path.join(self.tempDirPath.name, "Inputs")
-        os.makedirs(inputdirPath)
+        inputdir_path = os.path.join(self.temp_dir_path.name, "Inputs")
+        os.makedirs(inputdir_path)
 
         # copy the index file to a temp directory
-        absTestfilePath = os.path.join(
+        abs_testfile_path = os.path.join(
             self.__dataDir, "lp-index-with-spaces.txt")
-        tgtPath = os.path.join(inputdirPath, "merge-this.txt")
-        shutil.copy(absTestfilePath, tgtPath)
+        tgt_path = os.path.join(inputdir_path, "merge-this.txt")
+        shutil.copy(abs_testfile_path, tgt_path)
 
         # copy the input files to a temp directory
-        testfilePaths = ([
+        testfile_paths = ([
             "book-ch1.mmd", "book-ch2.mmd", "book-ch3.mmd",
             "book-end.mmd", "book-front.mmd", "book-index.mmd",
             "book-toc.mmd"])
-        for testfilePath in testfilePaths:
-            absTestfilePath = os.path.join(self.__dataDir, testfilePath)
-            shutil.copy(absTestfilePath, inputdirPath)
+        for testfile_path in testfile_paths:
+            abs_testfile_path = os.path.join(self.__dataDir, testfile_path)
+            shutil.copy(abs_testfile_path, inputdir_path)
 
         # run the test
-        absInfilePath = os.path.join(inputdirPath, "merge-this.txt")
-        self._mergeTest(
-            absInfilePath, "expected-book.mmd")
+        abs_infile_path = os.path.join(inputdir_path, "merge-this.txt")
+        self._merge_test(
+            abs_infile_path, "expected-book.mmd")
 
-    def testLeanpubIndexWithLeadingBlanksAndComments(self):
+    def test_leanpub_index_with_leading_blanks_and_comments(self):
         """Test MarkdownMerge.merge().
 
         A file is recognized as a leanpub index because the first non-blank,
@@ -689,158 +665,153 @@ class MarkdownMergeTests(unittest.TestCase):
         index. All blanks and comments are ignored.
 
         """
-
         # create the temp directory
-        inputdirPath = os.path.join(self.tempDirPath.name, "Inputs")
-        os.makedirs(inputdirPath)
+        inputdir_path = os.path.join(self.temp_dir_path.name, "Inputs")
+        os.makedirs(inputdir_path)
 
         # copy the index file to a temp directory
-        absTestfilePath = os.path.join(
+        abs_testfile_path = os.path.join(
             self.__dataDir, "lp-index-with-leading-spaces.txt")
-        tgtPath = os.path.join(inputdirPath, "merge-this.txt")
-        shutil.copy(absTestfilePath, tgtPath)
+        tgt_path = os.path.join(inputdir_path, "merge-this.txt")
+        shutil.copy(abs_testfile_path, tgt_path)
 
         # copy the input files to a temp directory
-        testfilePaths = ([
+        testfile_paths = ([
             "book-ch1.mmd", "book-ch2.mmd", "book-ch3.mmd",
             "book-end.mmd", "book-front.mmd", "book-index.mmd",
             "book-toc.mmd"])
-        for testfilePath in testfilePaths:
-            absTestfilePath = os.path.join(self.__dataDir, testfilePath)
-            shutil.copy(absTestfilePath, inputdirPath)
+        for testfile_path in testfile_paths:
+            abs_testfile_path = os.path.join(self.__dataDir, testfile_path)
+            shutil.copy(abs_testfile_path, inputdir_path)
 
         # run the test
-        absInfilePath = os.path.join(inputdirPath, "merge-this.txt")
-        self._mergeTest(
-            absInfilePath, "expected-book.mmd")
+        abs_infile_path = os.path.join(inputdir_path, "merge-this.txt")
+        self._merge_test(
+            abs_infile_path, "expected-book.mmd")
 
-    def testLeanpubIndexMissingFile(self):
+    def test_leanpub_index_missing_file(self):
         """Test MarkdownMerge.merge().
 
         A leanpub index contains a non-extant file. Show that is
         the file is ignored but a warning is issued to stderr.
 
         """
-
         # create the temp directory
-        inputdirPath = os.path.join(self.tempDirPath.name, "Inputs")
-        os.makedirs(inputdirPath)
+        inputdir_path = os.path.join(self.temp_dir_path.name, "Inputs")
+        os.makedirs(inputdir_path)
 
         # copy the index file to a temp directory
-        absTestfilePath = os.path.join(self.__dataDir, "lp-index-bad1.txt")
-        tgtPath = os.path.join(inputdirPath, "merge-this.txt")
-        shutil.copy(absTestfilePath, tgtPath)
+        abs_testfile_path = os.path.join(self.__dataDir, "lp-index-bad1.txt")
+        tgt_path = os.path.join(inputdir_path, "merge-this.txt")
+        shutil.copy(abs_testfile_path, tgt_path)
 
         # copy the input files to a temp directory
-        testfilePaths = ([
+        testfile_paths = ([
             "book-ch1.mmd", "book-ch2.mmd", "book-ch3.mmd",
             "book-end.mmd", "book-front.mmd", "book-index.mmd",
             "book-toc.mmd"])
-        for testfilePath in testfilePaths:
-            absTestfilePath = os.path.join(self.__dataDir, testfilePath)
-            shutil.copy(absTestfilePath, inputdirPath)
+        for testfile_path in testfile_paths:
+            abs_testfile_path = os.path.join(self.__dataDir, testfile_path)
+            shutil.copy(abs_testfile_path, inputdir_path)
 
         # run the test
-        absInfilePath = os.path.join(inputdirPath, "merge-this.txt")
-        self._mergeTest(
-            absInfilePath, "expected-book-bad1.mmd",
-            expectingStderr=True)
+        abs_infile_path = os.path.join(inputdir_path, "merge-this.txt")
+        self._merge_test(
+            abs_infile_path, "expected-book-bad1.mmd",
+            expecting_stderr=True)
 
-    def testMmdIndex(self):
+    def test_mmd_index(self):
         """Test MarkdownMerge.merge().
 
         A file is recognized as a multimarkdown index because the first line
         is '#merge:'; it is processed as a mmd_merge index.
 
         """
-
         # create the temp directory
-        inputdirPath = os.path.join(self.tempDirPath.name, "Inputs")
-        os.makedirs(inputdirPath)
+        inputdir_path = os.path.join(self.temp_dir_path.name, "Inputs")
+        os.makedirs(inputdir_path)
 
         # copy the index file to a temp directory
-        absTestfilePath = os.path.join(self.__dataDir, "mmd-index.txt")
-        tgtPath = os.path.join(inputdirPath, "merge-this.txt")
-        shutil.copy(absTestfilePath, tgtPath)
+        abs_testfile_path = os.path.join(self.__dataDir, "mmd-index.txt")
+        tgt_path = os.path.join(inputdir_path, "merge-this.txt")
+        shutil.copy(abs_testfile_path, tgt_path)
 
         # copy the input files to a temp directory
-        testfilePaths = ([
+        testfile_paths = ([
             "book-ch1.mmd", "book-ch2.mmd", "book-ch3.mmd",
             "book-end.mmd", "book-front.mmd", "book-index.mmd",
             "book-toc.mmd"])
-        for testfilePath in testfilePaths:
-            absTestfilePath = os.path.join(self.__dataDir, testfilePath)
-            shutil.copy(absTestfilePath, inputdirPath)
+        for testfile_path in testfile_paths:
+            abs_testfile_path = os.path.join(self.__dataDir, testfile_path)
+            shutil.copy(abs_testfile_path, inputdir_path)
 
         # run the test
-        absInfilePath = os.path.join(inputdirPath, "merge-this.txt")
-        self._mergeTest(
-            absInfilePath, "expected-book.mmd")
+        abs_infile_path = os.path.join(inputdir_path, "merge-this.txt")
+        self._merge_test(
+            abs_infile_path, "expected-book.mmd")
 
-    def testMmdIndexVariation(self):
+    def test_mmd_index_variation(self):
         """Test MarkdownMerge.merge().
 
         A file is recognized as a multimarkdown index because the first line
         is '#  merge:'; it is processed as a mmd_merge index.
 
         """
-
         # create the temp directory
-        inputdirPath = os.path.join(self.tempDirPath.name, "Inputs")
-        os.makedirs(inputdirPath)
+        inputdir_path = os.path.join(self.temp_dir_path.name, "Inputs")
+        os.makedirs(inputdir_path)
 
         # copy the index file to a temp directory
-        absTestfilePath = os.path.join(
+        abs_testfile_path = os.path.join(
             self.__dataDir, "mmd-index-variation.txt")
-        tgtPath = os.path.join(inputdirPath, "merge-this.txt")
-        shutil.copy(absTestfilePath, tgtPath)
+        tgt_path = os.path.join(inputdir_path, "merge-this.txt")
+        shutil.copy(abs_testfile_path, tgt_path)
 
         # copy the input files to a temp directory
-        testfilePaths = ([
+        testfile_paths = ([
             "book-ch1.mmd", "book-ch2.mmd", "book-ch3.mmd",
             "book-end.mmd", "book-front.mmd", "book-index.mmd",
             "book-toc.mmd"])
-        for testfilePath in testfilePaths:
-            absTestfilePath = os.path.join(self.__dataDir, testfilePath)
-            shutil.copy(absTestfilePath, inputdirPath)
+        for testfile_path in testfile_paths:
+            abs_testfile_path = os.path.join(self.__dataDir, testfile_path)
+            shutil.copy(abs_testfile_path, inputdir_path)
 
         # run the test
-        absInfilePath = os.path.join(inputdirPath, "merge-this.txt")
-        self._mergeTest(
-            absInfilePath, "expected-book.mmd")
+        abs_infile_path = os.path.join(inputdir_path, "merge-this.txt")
+        self._merge_test(
+            abs_infile_path, "expected-book.mmd")
 
-    def testMmdIndexWithMetadata(self):
+    def test_mmd_index_with_metadata(self):
         """Test MarkdownMerge.merge().
 
         A file is recognized as a multimarkdown index because the first line
         is '#merge:'; it is processed as a mmd_merge index.
 
         """
-
         # create the temp directory
-        inputdirPath = os.path.join(self.tempDirPath.name, "Inputs")
-        os.makedirs(inputdirPath)
+        inputdir_path = os.path.join(self.temp_dir_path.name, "Inputs")
+        os.makedirs(inputdir_path)
 
         # copy the index file to a temp directory
-        absTestfilePath = os.path.join(self.__dataDir, "mmd-m-index.txt")
-        tgtPath = os.path.join(inputdirPath, "merge-this.txt")
-        shutil.copy(absTestfilePath, tgtPath)
+        abs_testfile_path = os.path.join(self.__dataDir, "mmd-m-index.txt")
+        tgt_path = os.path.join(inputdir_path, "merge-this.txt")
+        shutil.copy(abs_testfile_path, tgt_path)
 
         # copy the input files to a temp directory
-        testfilePaths = ([
+        testfile_paths = ([
             "book-m-ch1.mmd", "book-m-ch2.mmd", "book-m-ch3.mmd",
             "book-m-end.mmd", "book-m-front.mmd", "book-m-index.mmd",
             "book-m-toc.mmd"])
-        for testfilePath in testfilePaths:
-            absTestfilePath = os.path.join(self.__dataDir, testfilePath)
-            shutil.copy(absTestfilePath, inputdirPath)
+        for testfile_path in testfile_paths:
+            abs_testfile_path = os.path.join(self.__dataDir, testfile_path)
+            shutil.copy(abs_testfile_path, inputdir_path)
 
         # run the test
-        absInfilePath = os.path.join(inputdirPath, "merge-this.txt")
-        self._mergeTest(
-            absInfilePath, "expected-book-m.mmd")
+        abs_infile_path = os.path.join(inputdir_path, "merge-this.txt")
+        self._merge_test(
+            abs_infile_path, "expected-book-m.mmd")
 
-    def testMmdIndexWithBlanksAndComments(self):
+    def test_mmd_index_with_blanks_and_comments(self):
         """Test MarkdownMerge.merge().
 
         A file is recognized as a multimarkdown index because of a leading
@@ -848,32 +819,31 @@ class MarkdownMergeTests(unittest.TestCase):
         other comments and blanks. It is processed as a mmd_merge index.
 
         """
-
         # create the temp directory
-        inputdirPath = os.path.join(self.tempDirPath.name, "Inputs")
-        os.makedirs(inputdirPath)
+        inputdir_path = os.path.join(self.temp_dir_path.name, "Inputs")
+        os.makedirs(inputdir_path)
 
         # copy the index file to a temp directory
-        absTestfilePath = os.path.join(
+        abs_testfile_path = os.path.join(
             self.__dataDir, "mmd-index-with-comments-and-blanks.txt")
-        tgtPath = os.path.join(inputdirPath, "merge-this.txt")
-        shutil.copy(absTestfilePath, tgtPath)
+        tgt_path = os.path.join(inputdir_path, "merge-this.txt")
+        shutil.copy(abs_testfile_path, tgt_path)
 
         # copy the input files to a temp directory
-        testfilePaths = ([
+        testfile_paths = ([
             "book-ch1.mmd", "book-ch2.mmd", "book-ch3.mmd",
             "book-end.mmd", "book-front.mmd", "book-index.mmd",
             "book-toc.mmd"])
-        for testfilePath in testfilePaths:
-            absTestfilePath = os.path.join(self.__dataDir, testfilePath)
-            shutil.copy(absTestfilePath, inputdirPath)
+        for testfile_path in testfile_paths:
+            abs_testfile_path = os.path.join(self.__dataDir, testfile_path)
+            shutil.copy(abs_testfile_path, inputdir_path)
 
         # run the test
-        absInfilePath = os.path.join(inputdirPath, "merge-this.txt")
-        self._mergeTest(
-            absInfilePath, "expected-book.mmd")
+        abs_infile_path = os.path.join(inputdir_path, "merge-this.txt")
+        self._merge_test(
+            abs_infile_path, "expected-book.mmd")
 
-    def testMmdIndexIndentedWithTabs(self):
+    def test_mmd_index_indented_with_tabs(self):
         """Test MarkdownMerge.merge().
 
         A file is recognized as a multimarkdown index because the first line
@@ -882,32 +852,31 @@ class MarkdownMergeTests(unittest.TestCase):
         the indentation.
 
         """
-
         # create the temp directory
-        inputdirPath = os.path.join(self.tempDirPath.name, "Inputs")
-        os.makedirs(inputdirPath)
+        inputdir_path = os.path.join(self.temp_dir_path.name, "Inputs")
+        os.makedirs(inputdir_path)
 
         # copy the index file to a temp directory
-        absTestfilePath = os.path.join(
+        abs_testfile_path = os.path.join(
             self.__dataDir, "mmd-index-indentation-tabs.txt")
-        tgtPath = os.path.join(inputdirPath, "merge-this.txt")
-        shutil.copy(absTestfilePath, tgtPath)
+        tgt_path = os.path.join(inputdir_path, "merge-this.txt")
+        shutil.copy(abs_testfile_path, tgt_path)
 
         # copy the input files to a temp directory
-        testfilePaths = ([
+        testfile_paths = ([
             "book-ch1.mmd", "book-ch2.mmd", "book-ch3.mmd",
             "book-end.mmd", "book-front.mmd", "book-index.mmd",
             "book-toc.mmd"])
-        for testfilePath in testfilePaths:
-            absTestfilePath = os.path.join(self.__dataDir, testfilePath)
-            shutil.copy(absTestfilePath, inputdirPath)
+        for testfile_path in testfile_paths:
+            abs_testfile_path = os.path.join(self.__dataDir, testfile_path)
+            shutil.copy(abs_testfile_path, inputdir_path)
 
         # run the test
-        absInfilePath = os.path.join(inputdirPath, "merge-this.txt")
-        self._mergeTest(
-            absInfilePath, "expected-book-indentation.mmd")
+        abs_infile_path = os.path.join(inputdir_path, "merge-this.txt")
+        self._merge_test(
+            abs_infile_path, "expected-book-indentation.mmd")
 
-    def testMmdIndexIndentedWithExactSpaces(self):
+    def test_mmd_index_indented_with_exact_spaces(self):
         """Test MarkdownMerge.merge().
 
         A file is recognized as a multimarkdown index because the first line
@@ -916,32 +885,31 @@ class MarkdownMergeTests(unittest.TestCase):
         the indentation. The indentation is spaces rather than tabs.
 
         """
-
         # create the temp directory
-        inputdirPath = os.path.join(self.tempDirPath.name, "Inputs")
-        os.makedirs(inputdirPath)
+        inputdir_path = os.path.join(self.temp_dir_path.name, "Inputs")
+        os.makedirs(inputdir_path)
 
         # copy the index file to a temp directory
-        absTestfilePath = os.path.join(
+        abs_testfile_path = os.path.join(
             self.__dataDir, "mmd-index-indentation-exact-spaces.txt")
-        tgtPath = os.path.join(inputdirPath, "merge-this.txt")
-        shutil.copy(absTestfilePath, tgtPath)
+        tgt_path = os.path.join(inputdir_path, "merge-this.txt")
+        shutil.copy(abs_testfile_path, tgt_path)
 
         # copy the input files to a temp directory
-        testfilePaths = ([
+        testfile_paths = ([
             "book-ch1.mmd", "book-ch2.mmd", "book-ch3.mmd",
             "book-end.mmd", "book-front.mmd", "book-index.mmd",
             "book-toc.mmd"])
-        for testfilePath in testfilePaths:
-            absTestfilePath = os.path.join(self.__dataDir, testfilePath)
-            shutil.copy(absTestfilePath, inputdirPath)
+        for testfile_path in testfile_paths:
+            abs_testfile_path = os.path.join(self.__dataDir, testfile_path)
+            shutil.copy(abs_testfile_path, inputdir_path)
 
         # run the test
-        absInfilePath = os.path.join(inputdirPath, "merge-this.txt")
-        self._mergeTest(
-            absInfilePath, "expected-book-indentation.mmd")
+        abs_infile_path = os.path.join(inputdir_path, "merge-this.txt")
+        self._merge_test(
+            abs_infile_path, "expected-book-indentation.mmd")
 
-    def testMmdIndexIndentedWithInexactSpaces(self):
+    def test_mmd_index_indented_with_inexact_spaces(self):
         """Test MarkdownMerge.merge().
 
         A file is recognized as a multimarkdown index because the first line
@@ -951,87 +919,80 @@ class MarkdownMergeTests(unittest.TestCase):
         of 4 (four).
 
         """
-
         # create the temp directory
-        inputdirPath = os.path.join(self.tempDirPath.name, "Inputs")
-        os.makedirs(inputdirPath)
+        inputdir_path = os.path.join(self.temp_dir_path.name, "Inputs")
+        os.makedirs(inputdir_path)
 
         # copy the index file to a temp directory
-        absTestfilePath = os.path.join(
+        abs_testfile_path = os.path.join(
             self.__dataDir, "mmd-index-indentation-inexact-spaces.txt")
-        tgtPath = os.path.join(inputdirPath, "merge-this.txt")
-        shutil.copy(absTestfilePath, tgtPath)
+        tgt_path = os.path.join(inputdir_path, "merge-this.txt")
+        shutil.copy(abs_testfile_path, tgt_path)
 
         # copy the input files to a temp directory
-        testfilePaths = ([
+        testfile_paths = ([
             "book-ch1.mmd", "book-ch2.mmd", "book-ch3.mmd",
             "book-end.mmd", "book-front.mmd", "book-index.mmd",
             "book-toc.mmd"])
-        for testfilePath in testfilePaths:
-            absTestfilePath = os.path.join(self.__dataDir, testfilePath)
-            shutil.copy(absTestfilePath, inputdirPath)
+        for testfile_path in testfile_paths:
+            abs_testfile_path = os.path.join(self.__dataDir, testfile_path)
+            shutil.copy(abs_testfile_path, inputdir_path)
 
         # run the test
-        absInfilePath = os.path.join(inputdirPath, "merge-this.txt")
-        self._mergeTest(
-            absInfilePath, "expected-book-indentation.mmd")
+        abs_infile_path = os.path.join(inputdir_path, "merge-this.txt")
+        self._merge_test(
+            abs_infile_path, "expected-book-indentation.mmd")
 
-    def testMultiIncludesWith2Files(self):
+    def test_multi_includes_with_2_files(self):
         """Test MarkdownMerge.merge().
 
         This is a root document that includes 2 files.
 
         """
+        self._merge_test("d-root2.mmd", "expected-d-root2.mmd")
 
-        self._mergeTest("d-root2.mmd", "expected-d-root2.mmd")
-
-    def testMultiIncludesWith3Files(self):
+    def test_multi_includes_with_3_files(self):
         """Test MarkdownMerge.merge().
 
         This is a root document that includes 3 files.
 
         """
+        self._merge_test("d-root3.mmd", "expected-d-root3.mmd")
 
-        self._mergeTest("d-root3.mmd", "expected-d-root3.mmd")
-
-    def testMultiIncludesWith3FilesLastAtEndOfRoot(self):
+    def test_multi_includes_with_3_files_last_at_end_of_root(self):
         """Test MarkdownMerge.merge().
 
         This is a root document that includes 3 files, with the last include
         being the last line of the file.
 
         """
+        self._merge_test("d-root3a.mmd", "expected-d-root3a.mmd")
 
-        self._mergeTest("d-root3a.mmd", "expected-d-root3a.mmd")
-
-    def testMultiIncludesWith4Files(self):
+    def test_multi_includes_with_4_files(self):
         """Test MarkdownMerge.merge().
 
         This is a root document that includes 4 files.
 
         """
+        self._merge_test("d-root4.mmd", "expected-d-root4.mmd")
 
-        self._mergeTest("d-root4.mmd", "expected-d-root4.mmd")
-
-    def testStdinNoIncludes(self):
+    def test_stdin_no_includes(self):
         """Test MarkdownMerge.merge().
 
         stdin with no includes should produce an identical file.
 
         """
+        self._merge_test("aa.mmd", "aa.mmd", infile_as_stdin=True)
 
-        self._mergeTest("aa.mmd", "aa.mmd", infileAsStdin=True)
-
-    def testStdinSingleIncludeFencedTransclusion(self):
+    def test_stdin_single_include_fenced_transclusion(self):
         """Test MarkdownMerge.merge().
 
         A file with one MMD transclusion inside an unnamed code fence.
 
         """
+        self._merge_test("t-c.mmd", "expected-t-c.mmd", infile_as_stdin=True)
 
-        self._mergeTest("t-c.mmd", "expected-t-c.mmd", infileAsStdin=True)
-
-    def testStdinMmdIndexIndentedWithInexactSpaces(self):
+    def test_stdin_mmd_index_indented_with_inexact_spaces(self):
         """Test MarkdownMerge.merge().
 
         STDIN is treated as in index because of the '--book' argument.
@@ -1040,190 +1001,173 @@ class MarkdownMergeTests(unittest.TestCase):
         even multiples of 4 (four).
 
         """
-
         # create the temp directory
-        inputdirPath = os.path.join(self.tempDirPath.name, "Inputs")
-        os.makedirs(inputdirPath)
+        inputdir_path = os.path.join(self.temp_dir_path.name, "Inputs")
+        os.makedirs(inputdir_path)
 
         # copy the index file to a temp directory
-        absTestfilePath = os.path.join(
+        abs_testfile_path = os.path.join(
             self.__dataDir, "mmd-index-indentation-inexact-spaces.txt")
-        tgtPath = os.path.join(inputdirPath, "merge-this.txt")
-        shutil.copy(absTestfilePath, tgtPath)
+        tgt_path = os.path.join(inputdir_path, "merge-this.txt")
+        shutil.copy(abs_testfile_path, tgt_path)
 
         # copy the input files to a temp directory
-        testfilePaths = ([
+        testfile_paths = ([
             "book-ch1.mmd", "book-ch2.mmd", "book-ch3.mmd",
             "book-end.mmd", "book-front.mmd", "book-index.mmd",
             "book-toc.mmd"])
-        for testfilePath in testfilePaths:
-            absTestfilePath = os.path.join(self.__dataDir, testfilePath)
-            shutil.copy(absTestfilePath, inputdirPath)
+        for testfile_path in testfile_paths:
+            abs_testfile_path = os.path.join(self.__dataDir, testfile_path)
+            shutil.copy(abs_testfile_path, inputdir_path)
 
         # run the test
-        absInfilePath = os.path.join(inputdirPath, "merge-this.txt")
-        self._mergeTest(
-            absInfilePath, "expected-book-indentation.mmd",
-            infileAsStdin=True, stdinIsBook=True)
+        abs_infile_path = os.path.join(inputdir_path, "merge-this.txt")
+        self._merge_test(
+            abs_infile_path, "expected-book-indentation.mmd",
+            infile_as_stdin=True, stdin_is_book=True)
 
-    def testWildcardIncludeLeanpubDefault(self):
+    def test_wildcard_include_leanpub_default(self):
         """Test MarkdownMerge.merge().
 
         One of the includes has a wildcard extension. Export target is html,
         by default.
 
         """
-
-        self._mergeTest(
+        self._merge_test(
             "w.mmd", "expected-w-html.mmd")
 
-    def testWildcardIncludeLeanpubHtml(self):
+    def test_wildcard_include_leanpub_html(self):
         """Test MarkdownMerge.merge().
 
         One of the includes has a wildcard extension. Export target is html.
 
         """
+        self._merge_test(
+            "w.mmd", "expected-w-html.mmd", wildcard_extension_is=".html")
 
-        self._mergeTest(
-            "w.mmd", "expected-w-html.mmd", wildcardExtensionIs=".html")
-
-    def testWildcardIncludeLeanpubLatex(self):
+    def test_wildcard_include_leanpub_latex(self):
         """Test MarkdownMerge.merge().
 
         One of the includes has a wildcard extension. Export target is latex.
 
         """
+        self._merge_test(
+            "w.mmd", "expected-w-latex.mmd", wildcard_extension_is=".tex")
 
-        self._mergeTest(
-            "w.mmd", "expected-w-latex.mmd", wildcardExtensionIs=".tex")
-
-    def testWildcardIncludeLeanpubLyx(self):
+    def test_wildcard_include_leanpub_lyx(self):
         """Test MarkdownMerge.merge().
 
         One of the includes has a wildcard extension. Export target is lyx.
 
         """
+        self._merge_test(
+            "w.mmd", "expected-w-lyx.mmd", wildcard_extension_is=".lyx")
 
-        self._mergeTest(
-            "w.mmd", "expected-w-lyx.mmd", wildcardExtensionIs=".lyx")
-
-    def testWildcardIncludeLeanpubOdf(self):
+    def test_wildcard_include_leanpub_odf(self):
         """Test MarkdownMerge.merge().
 
         One of the includes has a wildcard extension. Export target is odf.
 
         """
+        self._merge_test(
+            "w.mmd", "expected-w-odf.mmd", wildcard_extension_is=".odf")
 
-        self._mergeTest(
-            "w.mmd", "expected-w-odf.mmd", wildcardExtensionIs=".odf")
-
-    def testWildcardIncludeLeanpubOpml(self):
+    def test_wildcard_include_leanpub_opml(self):
         """Test MarkdownMerge.merge().
 
         One of the includes has a wildcard extension. Export target is opml.
 
         """
+        self._merge_test(
+            "w.mmd", "expected-w-opml.mmd", wildcard_extension_is=".opml")
 
-        self._mergeTest(
-            "w.mmd", "expected-w-opml.mmd", wildcardExtensionIs=".opml")
-
-    def testWildcardIncludeLeanpubRtf(self):
+    def test_wildcard_include_leanpub_rtf(self):
         """Test MarkdownMerge.merge().
 
         One of the includes has a wildcard extension. Export target is rtf.
 
         """
+        self._merge_test(
+            "w.mmd", "expected-w-rtf.mmd", wildcard_extension_is=".rtf")
 
-        self._mergeTest(
-            "w.mmd", "expected-w-rtf.mmd", wildcardExtensionIs=".rtf")
-
-    def testWildcardTransclusionDefault(self):
+    def test_wildcard_transclusion_default(self):
         """Test MarkdownMerge.merge().
 
         One of the includes has a wildcard extension. Export target is html,
         by default.
 
         """
-
-        self._mergeTest(
+        self._merge_test(
             "t-w.mmd", "expected-w-html.mmd")
 
-    def testWildcardTransclusionHtml(self):
+    def test_wildcard_transclusion_html(self):
         """Test MarkdownMerge.merge().
 
         One of the includes has a wildcard extension. Export target is html.
 
         """
+        self._merge_test(
+            "t-w.mmd", "expected-w-html.mmd", wildcard_extension_is=".html")
 
-        self._mergeTest(
-            "t-w.mmd", "expected-w-html.mmd", wildcardExtensionIs=".html")
-
-    def testWildcardTransclusionLatex(self):
+    def test_wildcard_transclusion_latex(self):
         """Test MarkdownMerge.merge().
 
         One of the includes has a wildcard extension. Export target is latex.
 
         """
+        self._merge_test(
+            "t-w.mmd", "expected-w-latex.mmd", wildcard_extension_is=".tex")
 
-        self._mergeTest(
-            "t-w.mmd", "expected-w-latex.mmd", wildcardExtensionIs=".tex")
-
-    def testWildcardTransclusionLyx(self):
+    def test_wildcard_transclusion_lyx(self):
         """Test MarkdownMerge.merge().
 
         One of the includes has a wildcard extension. Export target is lyx.
 
         """
+        self._merge_test(
+            "t-w.mmd", "expected-w-lyx.mmd", wildcard_extension_is=".lyx")
 
-        self._mergeTest(
-            "t-w.mmd", "expected-w-lyx.mmd", wildcardExtensionIs=".lyx")
-
-    def testWildcardTransclusionOdf(self):
+    def test_wildcard_transclusion_odf(self):
         """Test MarkdownMerge.merge().
 
         One of the includes has a wildcard extension. Export target is odf.
 
         """
+        self._merge_test(
+            "t-w.mmd", "expected-w-odf.mmd", wildcard_extension_is=".odf")
 
-        self._mergeTest(
-            "t-w.mmd", "expected-w-odf.mmd", wildcardExtensionIs=".odf")
-
-    def testWildcardTransclusionOpml(self):
+    def test_wildcard_transclusion_opml(self):
         """Test MarkdownMerge.merge().
 
         One of the includes has a wildcard extension. Export target is opml.
 
         """
+        self._merge_test(
+            "t-w.mmd", "expected-w-opml.mmd", wildcard_extension_is=".opml")
 
-        self._mergeTest(
-            "t-w.mmd", "expected-w-opml.mmd", wildcardExtensionIs=".opml")
-
-    def testWildcardTransclusionRtf(self):
+    def test_wildcard_transclusion_rtf(self):
         """Test MarkdownMerge.merge().
 
         One of the includes has a wildcard extension. Export target is rtf.
 
         """
+        self._merge_test(
+            "t-w.mmd", "expected-w-rtf.mmd", wildcard_extension_is=".rtf")
 
-        self._mergeTest(
-            "t-w.mmd", "expected-w-rtf.mmd", wildcardExtensionIs=".rtf")
-
-    def testUnicodeSingleIncludeMarked(self):
+    def test_unicode_single_include_marked(self):
         """Test MarkdownMerge.merge().
 
         A unicode (non-ascii) file with one Marked include.
 
         """
+        self._merge_test("u.mmd", "expected-u.mmd")
 
-        self._mergeTest("u.mmd", "expected-u.mmd")
-
-    def testUnicodeFirstLineSingleIncludeMarked(self):
+    def test_unicode_first_line_single_include_marked(self):
         """Test MarkdownMerge.merge().
 
         A unicode (non-ascii) file with one Marked include.
 
         """
-
-        self._mergeTest("u2.mmd", "expected-u2.mmd")
+        self._merge_test("u2.mmd", "expected-u2.mmd")
 
 # eof
