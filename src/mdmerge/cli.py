@@ -63,10 +63,10 @@ class CLI:
 
     def __init__(self, stdin=None, stdout=None, stderr=None):
         """Constructor."""
-        self.__stdinRedirected = False
+        self.__stdin_redirected = False
         if stdin is not None:
             self.__stdin = stdin
-            self.__stdinRedirected = True
+            self.__stdin_redirected = True
         else:
             self.__stdin = sys.stdin
         self.__stdout_redirected = False
