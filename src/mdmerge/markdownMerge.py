@@ -347,6 +347,8 @@ class MarkdownMerge:
         if not m:
             return None
         file_path = m.group(1)
+        if "TOC" == file_path:
+            return None
         if file_path.endswith(".*"):
             m = self.__reo_path_and_wildcard_extension.match(file_path)
             if m:
