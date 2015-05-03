@@ -169,7 +169,7 @@ License and Copyright
 
 MarkdownTools is licensed with the `Mozilla Public License`_ Version 2.0. 
 
-Copyright 2014 Dave Hein
+Copyright 2015 Dave Hein
 
 .. _Mozilla Public License: http://www.mozilla.org/MPL/2.0/
 
