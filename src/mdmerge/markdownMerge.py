@@ -6,57 +6,65 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 #
+
+"""Module of classes to merge input files into a single output file."""
+
 from __future__ import print_function, with_statement, generators, \
     unicode_literals
-
 import os
 import os.path
 import sys
-import argparse
 import re
 import io
 from collections import deque
 
+
 class MarkdownMerge:
 
-    def __init__(self,
-        wildcardExtensionIs=".html",
-        bookTxtIsSpecial=False,
-        stdinIsBook=False,
-        ignoreTransclusions=False,
-        justRaw=False):
-        self.__wildcardExtensionIs = wildcardExtensionIs
-        self.__bookTxtIsSpecial = bookTxtIsSpecial
-        self.__stdinIsBook = stdinIsBook
-        self.__ignoreTransclusions = ignoreTransclusions
-        self.__justRaw = justRaw
+    """Merge the files."""
 
-        self.__reoCodeFence = re.compile("^([~]{3,}|[`]{3,})[a-zA-Z0-9]+$")
-        self.__reoFence = re.compile("^([~]{3,}|[`]{3,})$")
-        self.__reoIndexComment = re.compile("^#")
-        self.__reoLeanpubCodeInclude = re.compile("^<<\[.*\]\((.+)\)$")
-        self.__reoLeanpubInclude = re.compile("^<<\((.+)\)$")
-        self.__reoLeanpubIndexMarker = re.compile("^frontmatter\:$")
-        self.__reoLeanpubIndexMeta = re.compile(
+    def __init__(
+            self,
+            wildcard_extension_is=".html",
+            book_txt_is_special=False,
+            stdin_is_book=False,
+            ignore_transclusions=False,
+            just_raw=False):
+        """Constructor."""
+        self.__wildcard_extension_is = wildcard_extension_is
+        self.__book_txt_is_special = book_txt_is_special
+        self.__stdin_is_book = stdin_is_book
+        self.__ignore_transclusions = ignore_transclusions
+        self.__just_raw = just_raw
+
+        self.__reo_code_fence = re.compile("^([~]{3,}|[`]{3,})[a-zA-Z0-9]+$")
+        self.__reo_fence = re.compile("^([~]{3,}|[`]{3,})$")
+        self.__reo_index_comment = re.compile("^#")
+        self.__reo_leanpub_code_include = re.compile("^<<\[.*\]\((.+)\)$")
+        self.__reo_leanpub_include = re.compile("^<<\((.+)\)$")
+        self.__reo_leanpub_index_marker = re.compile("^frontmatter\:$")
+        self.__reo_leanpub_index_meta = re.compile(
             "^(frontmatter\:|mainmatter:|backmatter:)$")
-        self.__reoMarkdownHeading = re.compile("^(#+)\s")
-        self.__reoMarkedInclude = re.compile("^<<\[(.+)\]$")
-        self.__reoMarkedRawInclude = re.compile("^<<\{(.+)\}$")
-        self.__reoMarkedRawIncludeInComment = re.compile(
+        self.__reo_markdown_heading = re.compile("^(#+)\s")
+        self.__reo_marked_include = re.compile("^<<\[(.+)\]$")
+        self.__reo_marked_raw_include = re.compile("^<<\{(.+)\}$")
+        self.__reo_marked_raw_include_in_comment = re.compile(
             "^<!-- <<\{(.+)\} -->$")
-        self.__reoMmdTransclusion = re.compile("^\{\{(.+)\}\}$")
-        self.__reoMultiMarkdownIndexMarker = re.compile("^#\s*merge$")
-        self.__reoPathAndWildcardExtension = re.compile("^(.+)\.\*$")
-        self.__reoWildcardExtension = re.compile("^(.+)\.\*$")
-        self.__reoYamlStart = re.compile("^---\s*$")
-        self.__reoYamlEnd = re.compile("^...\s*$")
-        self.__reoMultiMarkdownMetaData = re.compile(
+        self.__reo_mmd_transclusion = re.compile("^\{\{(.+)\}\}$")
+        self.__reo_multi_markdown_index_marker = re.compile("^#\s*merge$")
+        self.__reo_path_and_wildcard_extension = re.compile("^(.+)\.\*$")
+        self.__reo_wildcard_extension = re.compile("^(.+)\.\*$")
+        self.__reo_yaml_start = re.compile("^---\s*$")
+        self.__reo_yaml_end = re.compile("^...\s*$")
+        self.__reo_multi_markdown_meta_data = re.compile(
             "^[a-zA-Z0-9][a-zA-Z0-9 \t_-]*\:\s+\S+")
 
         self.buf = deque()
 
-    def _bumpLevel(self, level, line):
-        """Increase the heading level of the line by the integer level value.
+    def _bump_level(self, level, line):
+        """Increase the heading level of the line.
+
+        Increase the heading level of the line by the integer level value.
         Lines that are not headings are unaffected. If level is zero, no
         change will be made.
 
@@ -71,19 +79,18 @@ class MarkdownMerge:
             The adjusted line.
 
         """
-
         if 0 >= level:
             return line
-        if not self._isHeading(line):
+        if not self._is_heading(line):
             return line
 
         # produce warning if the heading level is too deep
         #
-        currentLevel = self._getHeadingLevel(line)
-        if 6 < (currentLevel + level):
+        current_level = self._get_heading_level(line)
+        if 6 < (current_level + level):
             sys.stderr.write(
                 "Warning: Heading level is increased beyond 6 for line:\n")
-            sys.stderr.write(self._shortenLine(line) + "\n")
+            sys.stderr.write(self._shorten_line(line) + "\n")
 
         # adjust the heading level
         #
@@ -91,8 +98,10 @@ class MarkdownMerge:
         result = prefix + line
         return result
 
-    def _countIndentation(self, line):
-        """Counts the number of positions that a merge index line is
+    def _count_indentation(self, line):
+        """Count the indentations of the merge index line.
+
+        Counts the number of positions that a merge index line is
         indented. A 'position' is one tab or 4 space characters. If
         spaces are used, extra spaces are ignore (i.e. a leading 4 spaces
         is equivalent to a leading 5, 6, or 7 spaces).
@@ -104,25 +113,25 @@ class MarkdownMerge:
             The indentation level as an integer number of indent positions.
 
         """
-
         level = 0
-        spaceCount = 0
+        space_count = 0
         for i in range(len(line)):
             if '\t' == line[i]:
                 level += 1
-                spaceCount = 0
+                space_count = 0
                 continue
             if ' ' == line[i]:
-                spaceCount += 1
-                if 4 == spaceCount:
+                space_count += 1
+                if 4 == space_count:
                     level += 1
-                    spaceCount = 0
+                    space_count = 0
                     continue
                 continue
-            break # stop at first character that is not a space or tab
+            # stop at first character that is not a space or tab
+            break
         return level
 
-    def _findIncludePath(self, lines):
+    def _find_include_path(self, lines):
         """Detect wheter line is an include specification.
 
         Args:
@@ -133,22 +142,22 @@ class MarkdownMerge:
                 includePath: None if the line is not an include
                     specification. Otherwise, returns the file
                     specification as a string value.
-                isCode: True if the include specification is for code;
+                is_code: True if the include specification is for code;
                     otherwise, False.
                 needsFencing: True if the code include needs to be wrapped
                     in a fence; False if not a code include or if fence already
                     exists.
 
         """
-
         if None == lines:
             return None, False, False
 
         # look for code file transclusion specification, which is:
         #
         #   1. A blank line, followed by
-        #   2. A code fence start (e.g. `~~~` or `~~~python` or similar, followed by
-        #   3. A line containing only `{{filepath}}`, followed by
+        #   2. A code fence start (e.g. `~~~` or `~~~python` or similar,
+        #      followed by
+        #   3. A line containing only `{{file_path}}`, followed by
         #   4. A code fence termination (e.g. `~~~`), followed by
         #   5. Another blank line.
         #
@@ -156,74 +165,74 @@ class MarkdownMerge:
         # And the last line could be None, indicating end of file
         #
         if (5 == len(lines)):
-            if (not self.__justRaw
-            and not self.__ignoreTransclusions
-            and self._stringIsNullOrWhitespace(lines[0])
-            and self._stringIsNullOrWhitespace(lines[4])
-            and not self._stringIsNullOrWhitespace(lines[1])
-            and not self._stringIsNullOrWhitespace(lines[2])
-            and not self._stringIsNullOrWhitespace(lines[3])
-            and self._lineIsCodeFence(lines[1])
-            and self._lineIsEndingFence(lines[3])):
-                spec = self._findTransclusion(lines[2])
+            if (not self.__just_raw
+                    and not self.__ignore_transclusions
+                    and self._string_is_null_or_whitespace(lines[0])
+                    and self._string_is_null_or_whitespace(lines[4])
+                    and not self._string_is_null_or_whitespace(lines[1])
+                    and not self._string_is_null_or_whitespace(lines[2])
+                    and not self._string_is_null_or_whitespace(lines[3])
+                    and self._line_is_code_fence(lines[1])
+                    and self._line_is_ending_fence(lines[3])):
+                spec = self._find_transclusion(lines[2])
                 if (None != spec):
                     return spec, True, False
 
         # look for normal file transclusion specification, which is:
         #
         #   1. A blank line, followed by
-        #   2. A line containing only `{{filepath}}`, followed by
+        #   2. A line containing only `{{file_path}}`, followed by
         #   3. Another blank line.
         #
         if (3 == len(lines)):
-            if (not self.__justRaw
-            and not self.__ignoreTransclusions
-            and self._stringIsNullOrWhitespace(lines[0])
-            and self._stringIsNullOrWhitespace(lines[2])):
-                spec = self._findTransclusion(lines[1])
+            if (not self.__just_raw
+                    and not self.__ignore_transclusions
+                    and self._string_is_null_or_whitespace(lines[0])
+                    and self._string_is_null_or_whitespace(lines[2])):
+                spec = self._find_transclusion(lines[1])
                 if (None != spec):
                     return spec, False, False
 
         # look for Marked file include specification, which is:
         #
         #   1. A blank line, followed by
-        #   2. A line containing only `<<[filepath]`, followed by
+        #   2. A line containing only `<<[file_path]`, followed by
         #   3. Another blank line.
         #
         if (3 == len(lines)):
-            if (not self.__justRaw
-            and self._stringIsNullOrWhitespace(lines[0])
-            and self._stringIsNullOrWhitespace(lines[2])):
-                spec = self._findMarkedInclude(lines[1])
+            if (not self.__just_raw
+                    and self._string_is_null_or_whitespace(lines[0])
+                    and self._string_is_null_or_whitespace(lines[2])):
+                spec = self._find_marked_include(lines[1])
                 if (None != spec):
                     return spec, False, False
 
         # look for Marked raw file include specification, which is:
         #
         #   1. A blank line, followed by
-        #   2. A line containing only `<<[filepath]`, followed by
+        #   2. A line containing only `<<[file_path]`, followed by
         #   3. Another blank line.
         #
         if (3 == len(lines)):
-            if (self.__justRaw
-            and self._stringIsNullOrWhitespace(lines[0])
-            and self._stringIsNullOrWhitespace(lines[2])):
-                spec = self._findMarkedRawIncludePostProcessing(lines[1])
+            if (self.__just_raw
+                    and self._string_is_null_or_whitespace(lines[0])
+                    and self._string_is_null_or_whitespace(lines[2])):
+                spec = self._find_marked_raw_include_post_processing(lines[1])
                 if (None != spec):
                     return spec, False, False
 
         # look for Leanpub file include specification, which is:
         #
         #   1. A blank line, followed by
-        #   2. A line containing only `<<(filepath)`, or
-        #      `<<[code caption](filepath) followed by
+        #   2. A line containing only `<<(file_path)`, or
+        #      `<<[code caption](file_path) followed by
         #   3. Another blank line.
         #
         if (3 == len(lines)):
-            if (not self.__justRaw
-            and self._stringIsNullOrWhitespace(lines[0])
-            and self._stringIsNullOrWhitespace(lines[2])):
-                spec = self._findLeanpubInclude(lines[1])
+            if (not self.__just_raw
+                    and self._string_is_null_or_whitespace(lines[0])
+                    and self._string_is_null_or_whitespace(lines[2])):
+                spec = self._find_leanpub_include(lines[1])
                 if (None != spec):
                     return spec, True, True
 
@@ -231,8 +240,10 @@ class MarkdownMerge:
         #
         return None, False, False
 
-    def _findLeanpubInclude(self, line):
-        """Parse the line looking for a Leanpub file include
+    def _find_leanpub_include(self, line):
+        """Look for Leanpub file include specification.
+
+        Parse the line looking for a Leanpub file include
         specification.
 
         Args:
@@ -244,17 +255,18 @@ class MarkdownMerge:
             the specified file path is returned.
 
         """
-
-        m = self.__reoLeanpubInclude.match(line)
+        m = self.__reo_leanpub_include.match(line)
         if not m:
-            m = self.__reoLeanpubCodeInclude.match(line)
+            m = self.__reo_leanpub_code_include.match(line)
             if not m:
                 return None
-        filepath = m.group(1)
-        return filepath
+        file_path = m.group(1)
+        return file_path
 
-    def _findMarkedInclude(self, line):
-        """Parse the line looking for a Marked file include
+    def _find_marked_include(self, line):
+        """Look for a Marked file include specification.
+
+        Parse the line looking for a Marked file include
         specification.
 
         Args:
@@ -266,15 +278,16 @@ class MarkdownMerge:
             the specified file path is returned.
 
         """
-
-        m = self.__reoMarkedInclude.match(line)
+        m = self.__reo_marked_include.match(line)
         if not m:
             return None
-        filepath = m.group(1)
-        return filepath
+        file_path = m.group(1)
+        return file_path
 
-    def _findMarkedRawIncludePreProcessing(self, line):
-        """Parse the line looking for a Marked file include
+    def _find_marked_raw_include_pre_processing(self, line):
+        """Look for a starting Marked raw file include specification.
+
+        Parse the line looking for a Marked raw file include
         specification.
 
         Args:
@@ -286,15 +299,16 @@ class MarkdownMerge:
             the specified file path is returned.
 
         """
-
-        m = self.__reoMarkedRawInclude.match(line)
+        m = self.__reo_marked_raw_include.match(line)
         if not m:
             return None
-        filepath = m.group(1)
-        return filepath
+        file_path = m.group(1)
+        return file_path
 
-    def _findMarkedRawIncludePostProcessing(self, line):
-        """Parse the line looking for a Marked file include
+    def _find_marked_raw_include_post_processing(self, line):
+        """Look for an ending Marked raw file include specification.
+
+        Parse the line looking for a Marked raw file include
         specification.
 
         Args:
@@ -306,17 +320,18 @@ class MarkdownMerge:
             the specified file path is returned.
 
         """
-
-        m = self.__reoMarkedRawIncludeInComment.match(line)
+        m = self.__reo_marked_raw_include_in_comment.match(line)
         if not m:
-            m = self.__reoMarkedRawInclude.match(line)
+            m = self.__reo_marked_raw_include.match(line)
             if not m:
                 return None
-        filepath = m.group(1)
-        return filepath
+        file_path = m.group(1)
+        return file_path
 
-    def _findTransclusion(self, line):
-        """Parse the line looking for a Multimarkdown file transclusion
+    def _find_transclusion(self, line):
+        """Look for a Multimarkdown file transclusion specification.
+
+        Parse the line looking for a Multimarkdown file transclusion
         specification.
 
         Args:
@@ -330,32 +345,35 @@ class MarkdownMerge:
             export extension.
 
         """
-
-        m = self.__reoMmdTransclusion.match(line)
+        m = self.__reo_mmd_transclusion.match(line)
         if not m:
             return None
-        filepath = m.group(1)
-        if filepath.endswith(".*"):
-            m = self.__reoPathAndWildcardExtension.match(filepath)
+        file_path = m.group(1)
+        if file_path.endswith(".*"):
+            m = self.__reo_path_and_wildcard_extension.match(file_path)
             if m:
-                filepath = "{0}{1}".format(
-                    m.group(1), self.__wildcardExtensionIs)
-        return filepath
+                file_path = "{0}{1}".format(
+                    m.group(1), self.__wildcard_extension_is)
+        return file_path
 
-    def _getAbsolutePath(self, mainDocumentPath, filePath):
-        """A method to determine the absolute path of a file path
+    def _get_absolute_path(self, main_document_path, file_path):
+        """Determine the absolution path of a file.
+
+        A method to determine the absolute path of a file path
         that might be relative or in the users home directory.
 
         """
-        absPath = os.path.expandvars(filePath)
-        absPath = os.path.expanduser(absPath)
-        if os.path.isabs(absPath):
-            return absPath
-        absPath = os.path.join(os.path.dirname(mainDocumentPath), absPath)
-        return absPath
+        abs_path = os.path.expandvars(file_path)
+        abs_path = os.path.expanduser(abs_path)
+        if os.path.isabs(abs_path):
+            return abs_path
+        abs_path = os.path.join(os.path.dirname(main_document_path), abs_path)
+        return abs_path
 
-    def _getHeadingLevel(self, line):
-        """Determines the heading level of a markdown heading line. Counts
+    def _get_heading_level(self, line):
+        """Get the heading level of a heading line.
+
+        Determines the heading level of a markdown heading line. Counts
         the number of consecutive '#' at the start of the line.
 
         Args:
@@ -365,43 +383,46 @@ class MarkdownMerge:
             The heading level of the line. 0 if no leading '#' chars.
 
         """
-
-        m = self.__reoMarkdownHeading.match(line)
+        m = self.__reo_markdown_heading.match(line)
         if not m:
             return 0
         h = m.group(1)
         return len(h)
 
-    def _isFileAnIndex(self, absFilePath):
-        """Examines the initial lines of a file to determine whether it
+    def _is_file_an_index(self, absfile_path):
+        """Determine whether the file is an index file.
+
+        Examines the initial lines of a file to determine whether it
         is an index file.
 
         Args:
-            absFilePath: the full file path of the file to be examined.
+            absfile_path: the full file path of the file to be examined.
 
         Returns:
             True if the file is a mmd_merge or a LeanPub index file.
 
         """
-
-        if (None == absFilePath
-        or not os.path.exists(absFilePath)):
+        if (None == absfile_path
+                or not os.path.exists(absfile_path)):
             return False
-        with io.open(absFilePath, 'r', encoding='utf-8') as idxfile:
+        with io.open(absfile_path, 'r', encoding='utf-8') as idxfile:
             for line in idxfile:
                 line = line.strip()
                 if 0 == len(line):
                     continue
-                if (self._isLeanpubIndexMarker(line)
-                or self._isMultiMarkdownIndexMarker(line)):
+                if (self._is_leanpub_index_marker(line)
+                        or self._is_multi_markdown_index_marker(line)):
                     return True
-                if self._isIndexComment(line):
-                    continue # skip blanks and comments
+                if self._is_index_comment(line):
+                    # skip blanks and comments
+                    continue
                 break
         return False
 
-    def _isHeading(self, line):
-        """Detect whether line begins with '# ', '## ', etc. Such lines
+    def _is_heading(self, line):
+        """Detect heading lines.
+
+        Detect whether line begins with '# ', '## ', etc. Such lines
         are headings when in a markdown file.
 
         Args:
@@ -412,92 +433,97 @@ class MarkdownMerge:
             otherwise, False.
 
         """
-
-        m = self.__reoMarkdownHeading.match(line)
+        m = self.__reo_markdown_heading.match(line)
         if not m:
             return False
         return True
 
-    def _isIndexComment(self, line):
-        """Detect whether line begins with '#'. Such lines are comments
+    def _is_index_comment(self, line):
+        """Detect index file comments.
+
+        Detect whether line begins with '#'. Such lines are comments
         when in an index file.
 
         Returns:
             True if the line begins with '#'; otherwise, False.
 
         """
-
-        m = self.__reoIndexComment.match(line)
+        m = self.__reo_index_comment.match(line)
         if not m:
             return False
         return True
 
-    def _isLeanpubIndexMarker(self, line):
-        """Detect whether line is 'frontmatter:', indicating the line
+    def _is_leanpub_index_marker(self, line):
+        """Detect Leanpub index files.
+
+        Detect whether line is 'frontmatter:', indicating the line
         is a marker for leanpub index files.
 
         Returns:
             True if the line is 'frontmatter:'; otherwise, False.
 
         """
-
-        m = self.__reoLeanpubIndexMarker.match(line)
+        m = self.__reo_leanpub_index_marker.match(line)
         if not m:
             return False
         return True
 
-    def _isLeanpubIndexMeta(self, line):
-        """Detect whether line is some LeanPub meta tag. Specifically:
+    def _is_leanpub_index_meta(self, line):
+        """Detect lLanpub meta tags.
+
+        Detect whether line is some LeanPub meta tag. Specifically:
         'frontmatter:', 'mainmatter:', 'backmatter:'.
 
         Returns:
             True if the line is a LeanPub meta tag; otherwise, False.
 
         """
-
-        m = self.__reoLeanpubIndexMeta.match(line)
+        m = self.__reo_leanpub_index_meta.match(line)
         if not m:
             return False
         return True
 
-    def _isMetadataEnd(self, line):
+    def _is_metadata_end(self, line):
+        """Detect end of yaml metadata."""
         if None == line:
             return True
         sline = line.strip()
         if 0 == len(sline):
             return True
-        m = self.__reoYamlEnd.match(sline)
+        m = self.__reo_yaml_end.match(sline)
         if m:
             return True
         return False
 
-    def _isMetadataStart(self, line):
+    def _is_metadata_start(self, line):
+        """Detect start of yaml metadata."""
         if None == line:
             return False
         sline = line.strip()
-        m = self.__reoYamlStart.match(sline)
+        m = self.__reo_yaml_start.match(sline)
         if m:
             return True
-        m = self.__reoMultiMarkdownMetaData.match(sline)
+        m = self.__reo_multi_markdown_meta_data.match(sline)
         if m:
             return True
         return False
 
-    def _isMultiMarkdownIndexMarker(self, line):
-        """Detect whether line is '#merge', indicating the line
+    def _is_multi_markdown_index_marker(self, line):
+        """Detect mmd_merge index file.
+
+        Detect whether line is '#merge', indicating the line
         is a marker for mmd_merge index files.
 
         Returns:
             True if the line is '#merge'; otherwise, False.
 
         """
-
-        m = self.__reoMultiMarkdownIndexMarker.match(line)
+        m = self.__reo_multi_markdown_index_marker.match(line)
         if not m:
             return False
         return True
 
-    def _lineIsCodeFence(self, line):
+    def _line_is_code_fence(self, line):
         """Detect whether the line contains a code fence directive.
 
         Args:
@@ -508,15 +534,14 @@ class MarkdownMerge:
             Otherwise returns False.
 
         """
-
-        m = self.__reoCodeFence.match(line)
+        m = self.__reo_code_fence.match(line)
         if not m:
-            m = self.__reoFence.match(line)
+            m = self.__reo_fence.match(line)
             if not m:
                 return False
         return True
 
-    def _lineIsEndingFence(self, line):
+    def _line_is_ending_fence(self, line):
         """Detect whether the line contains a terminating fence directive.
 
         Args:
@@ -527,32 +552,34 @@ class MarkdownMerge:
             Otherwise returns False.
 
         """
-
-        m = self.__reoFence.match(line)
+        m = self.__reo_fence.match(line)
         if not m:
             return False
         return True
 
-    def _mergedLines(self,
-        mainDocumentPath, infileNode, infile, isCode, needsFence,
-        discardMetadata=False):
-        """A generator function that examines each line of the
+    def _merged_lines(
+            self,
+            main_document_path, infile_node, infile, is_code, needs_fence,
+            discard_metadata=False):
+        """Recursively produce merged lines.
+
+        A generator function that examines each line of the
         input file and recursively calls itself for each included
         file. If the file is code, then include specifications are not
         followed but are reproduced as is.
 
         Args:
-            mainDocumentPath: the absolute file path of the main document;
+            main_document_path: the absolute file path of the main document;
                 used to determine the location of relative file paths found
                 in include specifications.
-            infileNode: the Node object representing the input file
+            infile_node: the Node object representing the input file
             infile: the file object of the opened input file
-            isCode: True if the include specification is for code;
+            is_code: True if the include specification is for code;
                 otherwise, False.
-            needsFence: True if the code include needs to be wrapped
+            needs_fence: True if the code include needs to be wrapped
                 in a fence; False if not a code include or if fence already
                 exists.
-            discardMetadata: Whether to preserve or discard the Multimarkdown
+            discard_metadata: Whether to preserve or discard the Multimarkdown
                 metadata found at the top of the infile.
 
         Returns:
@@ -560,7 +587,6 @@ class MarkdownMerge:
             if there are no more input lines.
 
         """
-
         # note 0: this is a generator function with multiple yield statements.
         # Sadly, it is very tricky.
         #
@@ -575,27 +601,31 @@ class MarkdownMerge:
 
         buf5 = deque(maxlen=5)
         buf3 = deque(maxlen=3)
-        buf5.append(None) # indicate top of file
-        buf3.append(None) # indicate top of file
-        buf5.append(None) # align with buf3 so that buf3 always
-        buf5.append(None) #   corresponds to buf5[2:5]
+        # indicate top of file
+        buf5.append(None)
+        # indicate top of file
+        buf3.append(None)
+        # align with buf3 so that buf3 always
+        buf5.append(None)
+        #   corresponds to buf5[2:5]
+        buf5.append(None)
 
-        startFenceProduced = False
-        endFenceProduced = False
+        start_fence_produced = False
+        end_fence_produced = False
 
-        isEOF = False
+        is_eof = False
 
-        shouldCheckMetadata = discardMetadata
-        if isCode:
-            shouldCheckMetadata = False
-        haveCheckedForMetadata = False
-        inMetadata = False
+        should_check_metadata = discard_metadata
+        if is_code:
+            should_check_metadata = False
+        have_checked_for_metadata = False
+        in_metadata = False
 
         while True:
-            if (needsFence
-            and not startFenceProduced):
+            if (needs_fence
+                    and not start_fence_produced):
                 self.buf.append("~~~")
-                startFenceProduced = True
+                start_fence_produced = True
             # read the next line
             #
             line = infile.readline()
@@ -606,25 +636,26 @@ class MarkdownMerge:
             # if infile encoding is not specified, force UTF-8
             #
             if (None == infile.encoding
-            and None != line):
+                    and None != line):
                 line = line.decode('utf-8')
             # discard metadata if required
             #
-            if shouldCheckMetadata:
-                if not haveCheckedForMetadata:
-                    haveCheckedForMetadata = True
-                    if self._isMetadataStart(line):
-                        inMetadata = True
+            if should_check_metadata:
+                if not have_checked_for_metadata:
+                    have_checked_for_metadata = True
+                    if self._is_metadata_start(line):
+                        in_metadata = True
                         continue
-                if inMetadata:
-                    if not self._isMetadataEnd(line):
+                if in_metadata:
+                    if not self._is_metadata_end(line):
                         continue
-                    inMetadata = False
-                    continue # eat the line that terminates the metadata
+                    in_metadata = False
+                    # eat the line that terminates the metadata
+                    continue
 
             # Process the buffers
             #
-            if isEOF:
+            if is_eof:
                 # special processing to empty buf5 when after EOF
                 #
                 # note: we delay detecting EOF immediately so that one None
@@ -638,25 +669,26 @@ class MarkdownMerge:
                     if None != bline:
                         self.buf.append(bline)
                     else:
-                        continue # skip leading None objects
+                        # skip leading None objects
+                        continue
                 # at end of line buffer, so close the fence if needed;
                 # otherwise, just get out of the main loop
                 #
                 if 0 == len(self.buf):
-                    if (needsFence
-                    and not endFenceProduced):
+                    if (needs_fence
+                            and not end_fence_produced):
                         self.buf.append("~~~")
-                        endFenceProduced = True
+                        end_fence_produced = True
                     else:
                         break
-            elif isCode:
+            elif is_code:
                 # code files are not processed for nested include specs
                 #
                 # detect end of file
                 #
                 if (None == line
-                and not isEOF):
-                    isEOF = True
+                        and not is_eof):
+                    is_eof = True
                 # push content line into the line buffer
                 #
                 if None != line:
@@ -667,8 +699,8 @@ class MarkdownMerge:
                 # detect end of file
                 #
                 if (None == line
-                and not isEOF):
-                    isEOF = True
+                        and not is_eof):
+                    is_eof = True
                 # pull line of the 5-line buffer and push onto the main
                 # line buffer
                 #
@@ -681,8 +713,8 @@ class MarkdownMerge:
                 buf5.append(line)
                 buf3.append(line)
                 # check whether this is a 5-line include pattern, ...
-                includePath, lclIsCode, lclNeedsFence = (
-                    self._findIncludePath(buf5))
+                includePath, lclis_code, lclneeds_fence = (
+                    self._find_include_path(buf5))
                 if includePath:
                     # consuming blank line, the start of the fence, and the
                     # include.
@@ -695,12 +727,12 @@ class MarkdownMerge:
                     buf3.clear()
                     for x in range(3):
                         buf5.appendleft(None)
-                    for x in range(2,5):
+                    for x in range(2, 5):
                         buf3.append(buf5[x])
                 else:
                     # ... or a 3-line include pattern.
-                    includePath, lclIsCode, lclNeedsFence = (
-                        self._findIncludePath(buf3))
+                    includePath, lclis_code, lclneeds_fence = (
+                        self._find_include_path(buf3))
                     if includePath:
                         # consuming the preceding two buffered lines,
                         # then the blank line and the include
@@ -716,11 +748,12 @@ class MarkdownMerge:
                         buf3.clear()
                         for x in range(4):
                             buf5.appendleft(None)
-                        for x in range(2,5):
+                        for x in range(2, 5):
                             buf3.append(buf5[x])
-                    elif (not self.__justRaw
-                    and 3 == len(buf3)
-                    and self._findMarkedRawIncludePreProcessing(buf3[1])):
+                    elif (not self.__just_raw
+                            and 3 == len(buf3)
+                            and self._find_marked_raw_include_pre_processing(
+                                buf3[1])):
                         # consuming the preceding two buffered lines,
                         # then the blank line and wrap the raw include
                         # in an html comment
@@ -738,190 +771,203 @@ class MarkdownMerge:
                         buf3.clear()
                         for x in range(4):
                             buf5.appendleft(None)
-                        for x in range(2,5):
+                        for x in range(2, 5):
                             buf3.append(buf5[x])
                 if includePath:
                     # merge in the include file
                     #
-                    absIncludePath = self._getAbsolutePath(
-                        mainDocumentPath, includePath)
-                    absIncludePath = self._resolveWildcardExtension(
-                        absIncludePath)
-                    includedfileNode = infileNode.addChild(absIncludePath)
-                    with io.open(absIncludePath, 'r',
+                    abs_include_path = self._get_absolute_path(
+                        main_document_path, includePath)
+                    abs_include_path = self._resolve_wildcard_extension(
+                        abs_include_path)
+                    included_file_node = infile_node.add_child(
+                        abs_include_path)
+                    with io.open(
+                            abs_include_path, 'r',
                             encoding='utf-8') as includedfile:
-                        for deeperLine in self._mergedLines(
-                            mainDocumentPath, includedfileNode, includedfile,
-                            lclIsCode, lclNeedsFence, discardMetadata=True):
-                            yield deeperLine
+                        for deeper_line in self._merged_lines(
+                                main_document_path, included_file_node,
+                                includedfile, lclis_code, lclneeds_fence,
+                                discard_metadata=True):
+                            yield deeper_line
             if 0 != len(self.buf):
-                nextLine = self.buf.popleft()
-                yield nextLine
+                next_line = self.buf.popleft()
+                yield next_line
 
-    def _mergeFile(self,
-        infile, mainDocumentPath, infileNode, level, outfile,
-        discardMetadata=False):
+    def _merge_file(
+            self,
+            infile, main_document_path, infile_node, level, outfile,
+            discard_metadata=False):
         """Add the merged lines of a single top-level file to the output.
 
         Args:
             infile: the input file stream
-            mainDocumentPath: the absolute file path of the main document;
+            main_document_path: the absolute file path of the main document;
                 used to determine the location of relative file paths found
                 in include specifications.
-            infileNode: the node representing the input file to process.
+            infile_node: the node representing the input file to process.
             level: the heading level to add to the headings found in the
                 input file.
             outfile: the open output file in which to write the merged lines.
-            discardMetadata: Whether to preserve or discard the Multimarkdown
+            discard_metadata: Whether to preserve or discard the Multimarkdown
                 metadata found at the top of the file.
 
         """
-
-        for line in self._mergedLines(
-                mainDocumentPath, infileNode, infile, False, False,
-                discardMetadata):
+        for line in self._merged_lines(
+                main_document_path, infile_node, infile, False, False,
+                discard_metadata):
             if None == line:
                 continue
-            outline = self._bumpLevel(level, line.rstrip("\r\n"))
+            outline = self._bump_level(level, line.rstrip("\r\n"))
             outline = outline + '\n'
             if None == outfile.encoding:
                 outline = outline.encode('utf-8')
             outfile.write(outline)
 
-    def _mergeStdinFile(self,
-        infileNode, level, outfile):
+    def _merge_stdin_file(
+            self,
+            infile_node, level, outfile):
         """Add the merged lines from stdin to the output.
 
         Args:
-            infileNode: the node representing stdin as the input file.
+            infile_node: the node representing stdin as the input file.
             level: the heading level to add to the headings found in the
                 input file.
             outfile: the open output file in which to write the merged lines.
 
         """
+        main_document_path = os.path.join(infile_node.root_path(), "dummy")
+        self._merge_file(
+            sys.stdin, main_document_path, infile_node, level, outfile)
 
-        mainDocumentPath = os.path.join(infileNode.rootPath(), "dummy")
-        self._mergeFile(
-            sys.stdin, mainDocumentPath, infileNode, level, outfile)
-
-    def _mergeSingleFile(self,
-        mainDocumentPath, absInfilePath, infileNode, level, outfile,
-        discardMetadata=False):
+    def _merge_single_file(
+            self,
+            main_document_path, abs_infile_path, infile_node, level, outfile,
+            discard_metadata=False):
         """Add the merged lines of a single top-level file to the output.
 
         Args:
-            mainDocumentPath: the absolute file path of the main document;
+            main_document_path: the absolute file path of the main document;
                 used to determine the location of relative file paths found
                 in include specifications.
-            absInfilePath: the full filename of the input file to process.
-            infileNode: the node representing the input file to process.
+            abs_infile_path: the full filename of the input file to process.
+            infile_node: the node representing the input file to process.
             level: the heading level to add to the headings found in the
                 input file.
             outfile: the open output file in which to write the merged lines.
-            discardMetadata: Whether to preserve or discard the Multimarkdown
+            discard_metadata: Whether to preserve or discard the Multimarkdown
                 metadata found at the top of the file.
 
         """
+        abs_infile_path = self._resolve_wildcard_extension(abs_infile_path)
+        with io.open(abs_infile_path, 'r', encoding='utf-8') as infile:
+            self._merge_file(
+                infile, main_document_path, infile_node, level, outfile,
+                discard_metadata)
 
-        absInfilePath = self._resolveWildcardExtension(absInfilePath)
-        with io.open(absInfilePath, 'r', encoding='utf-8') as infile:
-            self._mergeFile(
-                infile, mainDocumentPath, infileNode, level, outfile,
-                discardMetadata)
+    def _merge_index(
+            self,
+            idxfile, main_document_path, idxfile_node, outfile):
+        """Process index file lines, merging listed files.
 
-    def _mergeIndex(self, idxfile, mainDocumentPath, idxfileNode, outfile):
-        """Treat each line of the index file as an input file. Process
+        Treat each line of the index file as an input file. Process
         each input file to add the merged result to the output file.
 
         Args:
             idxfile: the index file stream to process.
-            mainDocumentPath: the absolute file path of the main document;
+            main_document_path: the absolute file path of the main document;
                 used to determine the location of relative file paths found
                 in include specifications.
-            idxfileNode: the node representing the index file to process.
+            idxfile_node: the node representing the index file to process.
             outfile: the open output file in which to write the merged lines.
 
         """
-
-        firstTime = True
-        discardMetadata = False
+        first_time = True
+        discard_metadata = False
         for line in idxfile:
-            infilePath = line.strip()
-            if (0 == len(infilePath)
-            or self._isIndexComment(line)
-            or self._isLeanpubIndexMeta(line)):
+            infile_path = line.strip()
+            if (0 == len(infile_path)
+                    or self._is_index_comment(line)
+                    or self._is_leanpub_index_meta(line)):
                 continue
-            absInfilePath = self._getAbsolutePath(
-                mainDocumentPath, infilePath)
-            if not os.path.exists(absInfilePath):
+            abs_infile_path = self._get_absolute_path(
+                main_document_path, infile_path)
+            if not os.path.exists(abs_infile_path):
                 # ignore non-extant files
                 sys.stderr.write(
                     "Warning: file does not exist -- {0}\n".format(
-                        absInfilePath))
+                        abs_infile_path))
                 continue
-            infileNode = idxfileNode.addChild(absInfilePath)
-            if not firstTime:
-                outfile.write("\n") # insert blank line between files
-                discardMetadata = True # keep only the 1st file's metadata
-            firstTime = False
-            level = self._countIndentation(line)
-            self._mergeSingleFile(
-                mainDocumentPath, absInfilePath, infileNode, level, outfile,
-                discardMetadata)
+            infile_node = idxfile_node.add_child(abs_infile_path)
+            if not first_time:
+                # insert blank line between files
+                outfile.write("\n")
+                # keep only the 1st file's metadata
+                discard_metadata = True
+            first_time = False
+            level = self._count_indentation(line)
+            self._merge_single_file(
+                main_document_path, abs_infile_path, infile_node, level,
+                outfile, discard_metadata)
 
-    def _mergeIndexFile(self, absIdxfilePath, idxfileNode, outfile):
-        """Treat each line of the index file as an input file. Process
+    def _merge_index_file(self, abs_idxfile_path, idxfile_node, outfile):
+        """Merge index file.
+
+        Treat each line of the index file as an input file. Process
         each input file to add the merged result to the output file.
 
         Args:
-            absIdxfilePath: the full filename of the index file to process.
-            idxfileNode: the node representing the index file to process.
+            abs_idxfile_path: the full filename of the index file to process.
+            idxfile_node: the node representing the index file to process.
             outfile: the open output file in which to write the merged lines.
 
         """
+        with io.open(abs_idxfile_path, 'r', encoding='utf-8') as idxfile:
+            self._merge_index(idxfile, abs_idxfile_path, idxfile_node, outfile)
 
-        with io.open(absIdxfilePath, 'r', encoding='utf-8') as idxfile:
-            self._mergeIndex(idxfile, absIdxfilePath, idxfileNode, outfile)
+    def _merge_index_stdin(self, idxfile_node, outfile):
+        """Merge index file from stdin.
 
-    def _mergeIndexStdin(self, idxfileNode, outfile):
-        """Treat each line of the index file as an input file. Process
+        Treat each line of the index file as an input file. Process
         each input file to add the merged result to the output file.
 
         Args:
-            absIdxfilePath: the full filename of the index file to process.
-            idxfileNode: the node representing the index file to process.
+            abs_idxfile_path: the full filename of the index file to process.
+            idxfile_node: the node representing the index file to process.
             outfile: the open output file in which to write the merged lines.
 
         """
+        main_document_path = os.path.join(idxfile_node.root_path(), "dummy")
+        self._merge_index(sys.stdin, main_document_path, idxfile_node, outfile)
 
-        mainDocumentPath = os.path.join(idxfileNode.rootPath(), "dummy")
-        self._mergeIndex(sys.stdin, mainDocumentPath, idxfileNode, outfile)
+    def _resolve_wildcard_extension(self, file_path):
+        """Apply wildcard extension.
 
-    def _resolveWildcardExtension(self, filePath):
-        """Return the path with the wildcard extension resolve to match
+        Return the path with the wildcard extension resolve to match
         the export target. If no wildcard extension used, then the file path
         will be unchanged.
 
         Args:
-            filePath: the relative or absolute file path to check for a
+            file_path: the relative or absolute file path to check for a
                 wildcard extension.
 
         Returns:
             The file path with the wildcard extension replaced with a
             specific extension matching the export target. If no wilcard
-            extension was used, then the return value is the filePath argument
+            extension was used, then the return value is the file_path argument
             value.
 
         """
-
-        m = self.__reoWildcardExtension.match(filePath)
+        m = self.__reo_wildcard_extension.match(file_path)
         if not m:
-            return filePath
-        resolvedPath = m.group(1) + self.__wildcardExtensionIs
-        return resolvedPath
+            return file_path
+        resolved_path = m.group(1) + self.__wildcard_extension_is
+        return resolved_path
 
-    def _shortenLine(self, line):
-        """Shorten a long line to something less than 60 characters; append
+    def _shorten_line(self, line):
+        """Shorten long lines using ellipses.
+
+        Shorten a long line to something less than 60 characters; append
         ellipses if the line was shortened. This is intended to be used
         for lines displayed in error and warning messages.
 
@@ -932,13 +978,14 @@ class MarkdownMerge:
             The shortened line, suitable for display.
 
         """
-
         if 60 >= len(line):
             return line
         return line[:55] + " ..."
 
-    def _stringIsNullOrWhitespace(self, s):
-        """Detect whether the string is null, empty, or contains only
+    def _string_is_null_or_whitespace(self, s):
+        """Determine if string is null or empty.
+
+        Detect whether the string is null, empty, or contains only
         whitespace.
 
         Args:
@@ -949,7 +996,6 @@ class MarkdownMerge:
             whitespace characters. Otherwise returns False.
 
         """
-
         if None == s:
             return True
         if 0 == len(s):
@@ -958,39 +1004,40 @@ class MarkdownMerge:
             return True
         return False
 
-    def merge(self, infileNode, outfile, discardMetadata=False):
-        """Give the input file (via a Node object) and the output file
+    def merge(self, infile_node, outfile, discard_metadata=False):
+        """Perform the merge.
+
+        Give the input file (via a Node object) and the output file
         stream object, process the input file, including other files as
         specified by the include specification encountered, writing the
         resulting output lines to the output file stream.
 
         Args:
-            infileNode: a Node object that represents the input
+            infile_node: a Node object that represents the input
                 file to be processed.
             outfile: the output file stream to which the resulting
                 lines will be written.
-            discardMetadata: Whether to preserve or discard the Multimarkdown
+            discard_metadata: Whether to preserve or discard the Multimarkdown
                 metadata found at the top of the file. Ignored for index files.
 
         """
-
-        infilePath = infileNode.filePath()
-        if None == infilePath:
-            if self.__stdinIsBook:
-                self._mergeIndexStdin(infileNode, outfile)
+        infile_path = infile_node.file_path()
+        if None == infile_path:
+            if self.__stdin_is_book:
+                self._merge_index_stdin(infile_node, outfile)
             else:
-                self._mergeStdinFile(infileNode, 0, outfile)
+                self._merge_stdin_file(infile_node, 0, outfile)
         else:
-            absInfilePath = os.path.abspath(infilePath)
-            infileName = os.path.basename(absInfilePath)
-            if (self.__bookTxtIsSpecial
-            and "book.txt".lower() == infileName.lower()):
-                self._mergeIndexFile(absInfilePath, infileNode, outfile)
-            elif self._isFileAnIndex(absInfilePath):
-                self._mergeIndexFile(absInfilePath, infileNode, outfile)
+            abs_infile_path = os.path.abspath(infile_path)
+            infile_name = os.path.basename(abs_infile_path)
+            if (self.__book_txt_is_special
+                    and "book.txt".lower() == infile_name.lower()):
+                self._merge_index_file(abs_infile_path, infile_node, outfile)
+            elif self._is_file_an_index(abs_infile_path):
+                self._merge_index_file(abs_infile_path, infile_node, outfile)
             else:
-                self._mergeSingleFile(
-                    absInfilePath, absInfilePath, infileNode, 0, outfile,
-                    discardMetadata)
+                self._merge_single_file(
+                    abs_infile_path, abs_infile_path, infile_node, 0, outfile,
+                    discard_metadata)
 
 # eof

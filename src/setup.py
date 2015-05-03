@@ -1,6 +1,9 @@
 # These next two lines handle the case where setuptools is not installed
 # on the system or in the virtualenv
 #
+
+"""The setup script for MarkdownTools."""
+
 import ez_setup
 ez_setup.use_setuptools()
 #
@@ -13,10 +16,12 @@ import re
 
 here = os.path.abspath(os.path.dirname(__file__))
 
+
 # Read the version number from a source file.
 # Why read it, and not import?
 # see https://groups.google.com/d/topic/pypa-dev/0PkjVpcxTzQ/discussion
 def find_version(*file_paths):
+    """Find the version of MarkdownTools being installed."""
     # Open in Latin-1 so that we avoid encoding errors.
     # Use codecs.open for Python 2 compatibility
     with codecs.open(os.path.join(here, *file_paths), 'r', 'latin1') as f:
@@ -80,9 +85,9 @@ setup(
     # simple. Or you can use find_packages.
     packages=find_packages(exclude=["utilities"]),
 
-    # List run-time dependencies here.  These will be installed by pip when your
-    # project is installed.
-    install_requires = [],
+    # List run-time dependencies here.  These will be installed by pip when
+    # your project is installed.
+    install_requires=[],
 
     # If there are data files included in your packages that need to be
     # installed, specify them here.  If using Python 2.6 or less, then these

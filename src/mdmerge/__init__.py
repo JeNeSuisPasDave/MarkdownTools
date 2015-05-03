@@ -8,7 +8,7 @@
 #
 
 """
-Copyright (c) 2014  Dave Hein <dhein@acm.org>
+Copyright (c) 2014  Dave Hein <dhein@acm.org>.
 
 This module is a command line utility for merging Markdown files
 into a single file. It examines each file for include statements of the
@@ -23,4 +23,4 @@ form:
 __author__ = "Dave Hein <dhein@acm.org>"
 __copyright__ = "Copyright 2014 Dave Hein"
 __license__ = "MPL-2.0"
-__version__ = "1.0"
+__version__ = "1.0.1"
