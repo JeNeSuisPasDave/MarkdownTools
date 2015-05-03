@@ -1,4 +1,4 @@
-# Copyright 2014 Dave Hein
+# Copyright 2015 Dave Hein
 #
 # This file is part of MarkdownTools
 #

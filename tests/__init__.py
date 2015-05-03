@@ -4,7 +4,7 @@
 #
 
 """
-Copyright (c) 2014  Dave Hein <dhein@acm.org>.
+Copyright (c) 2015 Dave Hein <dhein@acm.org>.
 
 This module contains unit tests for MarkdownTools modules.
 

@@ -1,3 +1,4 @@
+include CHANGES.rst
 include DESCRIPTION.rst
 include ez_setup.py
 include LICENSE.html
