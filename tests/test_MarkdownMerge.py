@@ -482,6 +482,23 @@ class MarkdownMergeTests(unittest.TestCase):
         """
         self._merge_test("t-a.mmd", "t-a.mmd", ignore_transclusions=True)
 
+    def test_toc_and_single_include_transclusion(self):
+        """Test MarkdownMerge.merge().
+
+        A file with {{TOC}} and one MMD transclusion.
+
+        """
+        self._merge_test("t-toc.mmd", "expected-t-toc.mmd")
+
+    def test_toc_and_single_include_transclusion_ignored(self):
+        """Test MarkdownMerge.merge().
+
+        A file with {{TOC}} and one MMD transclusion, but with the
+        transclusion ignored.
+
+        """
+        self._merge_test("t-toc.mmd", "t-toc.mmd", ignore_transclusions=True)
+
     def test_child_to_parent_cycle(self):
         """Test MarkdownMerge.merge().
 
