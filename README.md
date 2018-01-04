@@ -49,7 +49,7 @@ Includes can be nested; that is, a file can include another file that itself inc
 
 This example shows an include specification of another markdown file:
 
-<pre><code class="markdown">This next bit is an included Markdown file. If it also has embedded include specifications, they will be processed as well; these kinds of includes are nested.
+<pre><code class="markdown">This next bit is an included Markdown file. If it also has embedded include specifications, they will be processed as well; these kinds of includes are nested. One blank line before _and_ after the the included Markdownfile is neccessary.
 
 &lt;&lt;&#91;section-a.md&#93;
 
